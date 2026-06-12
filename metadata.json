@@ -1,0 +1,6 @@
+{
+  "name": "Sakeenah Clinical Psychiatric Assessment & Support AI",
+  "description": "منصة سكينة للصحة النفسية: تقييم نفسي إكلينيكي أولي شامل، تحليل للشكاوى بالنصوص والصوت، خطط دعم وعلاج معرفي سلوكي (CBT)، ومتابعة يومية للأدوية والمؤشرات الحيوية.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
