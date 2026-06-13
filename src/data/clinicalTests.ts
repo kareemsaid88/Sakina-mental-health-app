@@ -258,6 +258,61 @@ export const CLINICAL_TESTS: StandardTest[] = [
           { score: 1, labelArabic: "غالباً" },
           { score: 0, labelArabic: "دائماً جداً" }
         ]
+      },
+      {
+        id: 6,
+        textArabic: "كم مرة وجدْت أنك لا تستطيع التكيف والتعايش مع جميع الأمور التي كان عليك القيام بها؟",
+        options: [
+          { score: 0, labelArabic: "أبداً" },
+          { score: 1, labelArabic: "تقريباً أبداً" },
+          { score: 2, labelArabic: "أحياناً" },
+          { score: 3, labelArabic: "غالباً" },
+          { score: 4, labelArabic: "دائماً جداً" }
+        ]
+      },
+      {
+        id: 7,
+        textArabic: "كم مرة كنت قادراً على التحكم في المضايقات والمنغصات الصغرى في حياتك اليومية؟ (عكسي)",
+        options: [
+          { score: 4, labelArabic: "أبداً" },
+          { score: 3, labelArabic: "تقريباً أبداً" },
+          { score: 2, labelArabic: "أحياناً" },
+          { score: 1, labelArabic: "غالباً" },
+          { score: 0, labelArabic: "دائماً جداً" }
+        ]
+      },
+      {
+        id: 8,
+        textArabic: "كم مرة شعرت بأنك مسيطر وقادر على التحكم في مجريات أمورك بصورة تامة؟ (عكسي)",
+        options: [
+          { score: 4, labelArabic: "أبداً" },
+          { score: 3, labelArabic: "تقريباً أبداً" },
+          { score: 2, labelArabic: "أحياناً" },
+          { score: 1, labelArabic: "غالباً" },
+          { score: 0, labelArabic: "دائماً جداً" }
+        ]
+      },
+      {
+        id: 9,
+        textArabic: "كم مرة غضبت أو تملّكك القلق بسبب أشياء وقعت وكانت بالكامل خارج نطاق إرادتك أو سيطرتك؟",
+        options: [
+          { score: 0, labelArabic: "أبداً" },
+          { score: 1, labelArabic: "تقريباً أبداً" },
+          { score: 2, labelArabic: "أحياناً" },
+          { score: 3, labelArabic: "غالباً" },
+          { score: 4, labelArabic: "دائماً جداً" }
+        ]
+      },
+      {
+        id: 10,
+        textArabic: "كم مرة شعرت أن الصعوبات تتراكم حولك وتتكاثر لدرجة عجزت معها تماماً عن التغلب عليها وتجاوزها؟",
+        options: [
+          { score: 0, labelArabic: "أبداً" },
+          { score: 1, labelArabic: "تقريباً أبداً" },
+          { score: 2, labelArabic: "أحياناً" },
+          { score: 3, labelArabic: "غالباً" },
+          { score: 4, labelArabic: "دائماً جداً" }
+        ]
       }
     ]
   },
