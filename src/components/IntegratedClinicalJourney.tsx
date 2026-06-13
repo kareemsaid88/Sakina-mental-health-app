@@ -1492,7 +1492,7 @@ export function IntegratedClinicalJourney() {
         <div class="grid">
           <div class="card">
             <div class="meta-item"><span class="meta-label">المقياس الطبي المجرى:</span> ${finalReportResult.testName} (${finalReportResult.testId})</div>
-            <div class="meta-item"><span class="meta-label">الدرجة الكلية المستحقة للمريض:</span> <strong style="font-size: 15px; color: #0d9488;">${finalReportResult.totalScore} من أصل ${finalReportResult.testId === "PHQ-9" ? "27" : finalReportResult.testId === "GAD-7" ? "21" : "40"}</strong></div>
+            <div class="meta-item"><span class="meta-label">الدرجة الكلية المستحقة للمريض:</span> <strong style="font-size: 15px; color: #0d9488;" dir="ltr">${finalReportResult.totalScore} / ${finalReportResult.testId === "PHQ-9" ? "27" : finalReportResult.testId === "GAD-7" ? "21" : "40"}</strong></div>
           </div>
           <div class="card">
             <div class="meta-item"><span class="meta-label">مستوى شدة الحالة السريرية:</span> <strong style="color: #991b1b;">${finalReportResult.severity}</strong></div>
@@ -2238,7 +2238,7 @@ export function IntegratedClinicalJourney() {
                           ● المجرى النفسي: <strong className="text-slate-200">مقياس {finalReportResult?.testName || "سكينة الأساسي"}</strong>
                         </div>
                         <div>
-                          ● المحصلة الرقمية: <strong className="text-emerald-400 font-bold" dir="ltr">{finalReportResult?.totalScore || "جاري التقييم"} <span className="text-slate-500 font-sans text-[9px] mx-1">من أصل</span> {finalReportResult?.testId === "PHQ-9" ? "27" : finalReportResult?.testId === "GAD-7" ? "21" : "40"} نقاط</strong>
+                          ● المحصلة الرقمية: <strong className="text-emerald-400 font-bold font-mono" dir="ltr">{finalReportResult?.totalScore || "0"} / {finalReportResult?.testId === "PHQ-9" ? "27" : finalReportResult?.testId === "GAD-7" ? "21" : "40"}</strong> <span className="text-slate-400 text-[10px] mr-1">نقاط</span>
                         </div>
                         <div>
                           ● مستوى شدة الأعراض: <strong className="text-red-405 text-red-400">[{finalReportResult?.severity || "خفيف/معتدل"}]</strong>
@@ -2416,7 +2416,6 @@ export function IntegratedClinicalJourney() {
                   </div>
                 </div>
               </div>
-
             </>
           )}
 
@@ -2426,9 +2425,9 @@ export function IntegratedClinicalJourney() {
               {!clinicalReport ? (
                 <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center space-y-4">
                   <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto animate-pulse" />
-                  <h4 className="text-sm font-black text-slate-200">تقرير التقييم الإكلينيكي غير متوفر بعد</h4>
+                  <h4 className="text-sm font-black text-slate-200">تقرير التقييم الإكلينيكي لا يزال قيد التوليد أو غير جاهز</h4>
                   <p className="text-slate-400 text-[11px] max-w-md mx-auto">
-                    لم يتم إجراء فحص الشكوى الأولية بعد. يرجى التوجه إلى المرحلة الثانية وتدوين تفاصيل عنائك النفسي بالتفصيل أو عبر الصوت أو الدردشة، ثم الضغط على "تحليل الشكوى" لإصدار تقرير الفرز.
+                    لم نتمكن من العثور على تقرير إكلينيكي مفعل. يرجى التوجه إلى المرحلة الثانية وتدوين تفاصيل عنائك بالتفصيل، ثم الضغط على "تحليل الشكوى" لإنشاء التقرير.
                   </p>
                   <button
                     type="button"
@@ -2449,17 +2448,11 @@ export function IntegratedClinicalJourney() {
                         <span className="px-2 py-0.5 bg-teal-950 text-teal-400 border border-teal-900 rounded font-black text-[8px] uppercase">مكتمل ومعتمد عيادياً ✅</span>
                         <h4 className="text-sm md:text-base font-black text-slate-100 mt-1">تقرير التقييم والفرز الإكلينيكي الأولي للـسـكـيـنـة</h4>
                       </div>
-                      <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 border border-slate-850 rounded-xl">
+                      <div className="flex items-center gap-1.5 bg-slate-100/10 px-3 py-1.5 border border-slate-800 rounded-xl">
                         <Activity className="w-4 h-4 text-teal-400" />
                         <span className="text-[10px] text-slate-350">مؤشر الأولوية:</span>
-                        <span className={`font-black text-[10px] ${
-                          clinicalReport.riskLevel === "high" || clinicalReport.riskLevel === "critical"
-                            ? "text-red-400"
-                            : clinicalReport.riskLevel === "medium"
-                            ? "text-amber-400"
-                            : "text-emerald-400"
-                        }`}>
-                          {clinicalReport.isEmergency ? "تدخل طارئ" : clinicalReport.riskLevel === "high" ? "مرتفعة" : clinicalReport.riskLevel === "medium" ? "متوسطة" : "مستقرة"}
+                        <span className="font-extrabold text-[10px] text-emerald-400">
+                          {clinicalReport.isEmergency ? "تدخل طارئ" : clinicalReport.riskLevel === "High" ? "مرتفعة" : "مستقرة"}
                         </span>
                       </div>
                     </div>
@@ -2471,7 +2464,7 @@ export function IntegratedClinicalJourney() {
                           <span>الملخص الإكلينيكي وقراءة الحالة:</span>
                           <span className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
                         </h5>
-                        <p className="text-slate-300 text-xs md:text-[13px] bg-slate-950/40 p-4 rounded-2xl border border-slate-900 leading-relaxed">
+                        <p className="text-slate-300 text-xs bg-slate-950/40 p-4 rounded-2xl border border-slate-900 leading-relaxed">
                           {clinicalReport.summaryArabic}
                         </p>
                       </div>
@@ -2493,34 +2486,21 @@ export function IntegratedClinicalJourney() {
                         </div>
                       )}
 
-                      {/* Suspected Conditions / Case Match */}
+                      {/* Case Match / Diagnoses */}
                       <div className="space-y-1.5">
                         <h5 className="font-extrabold text-teal-400 text-[11px] flex items-center gap-1.5 justify-end">
-                          <span>التشخيص والمطابقة الإرشادية لبروتوكولات DSM-5:</span>
+                          <span>التشخيص المطابق ومستوى الشدة:</span>
                           <span className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
                         </h5>
                         <div className="bg-slate-950/35 border border-slate-900 rounded-2xl p-4 space-y-2 text-slate-300">
-                          {Array.isArray(clinicalReport.suspectedConditions) ? (
-                            <ul className="space-y-1.5 list-disc list-inside">
-                              {clinicalReport.suspectedConditions.map((cond: any, idx: number) => (
-                                <li key={idx} className="text-xs">
-                                  <strong>{typeof cond === "string" ? cond : cond.conditionArabic || cond.name}:</strong>{" "}
-                                  {cond.severityArabic || cond.descArabic || "تطابق عالي يستوجب التدقيق السيكومتري"}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-xs leading-relaxed text-slate-300">
-                              {clinicalReport.possibleDiagnosesSummary || "تطابق أعراض القلق والتوتر والمزاج والوساوس السلوكية الطفيفة."}
-                            </p>
-                          )}
+                          {clinicalReport.possibleDiagnosesSummary || "تطابق أعراض القلق والتوتر والمزاج والوساوس السلوكية."}
                         </div>
                       </div>
                     </div>
 
                     {/* Progress to Stage 4 panel */}
                     <div className="p-4 bg-teal-950/20 border border-teal-900/35 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-                      <div className="text-right space-y-1">
+                      <div className="text-right space-y-1 font-sans">
                         <strong className="text-teal-400 block font-black">الخطوة البروتوكولية التالية في المسار الطبي:</strong>
                         <span className="text-[10px] text-slate-400">
                           بناءً على التقييم أعلاه، تم تخصيص وتعيين المقياس النفسي المعتمد لتوثيق الشدة بدقة سريرية تامة.
@@ -2529,7 +2509,7 @@ export function IntegratedClinicalJourney() {
                       <button
                         type="button"
                         onClick={() => setCurrentStep(4)}
-                        className="w-full md:w-auto px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-slate-950 font-black rounded-xl cursor-pointer transition shadow-lg shadow-teal-950/20 flex items-center justify-center gap-1.5 whitespace-nowrap"
+                        className="w-full md:w-auto px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-slate-950 font-black rounded-xl cursor-pointer transition shadow-lg flex items-center justify-center gap-1.5 whitespace-nowrap"
                       >
                         الذهاب لفحص المقياس الموصى به ➡️
                       </button>
@@ -2558,7 +2538,7 @@ export function IntegratedClinicalJourney() {
                 <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center space-y-4">
                   <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto animate-pulse" />
                   <h4 className="text-sm font-black text-slate-200">الـمـقـيـاس غـيـر مـعـيـن بـعـد</h4>
-                  <p className="text-slate-400 text-[11px] max-w-md mx-auto">
+                  <p className="text-slate-450 text-[11px] max-w-md mx-auto">
                     لم يقرر المحرك الفرز الإكلينيكي الخاص بك مقياساً محدداً حتى الآن لعدم توفر تقرير أولي. يرجى العودة وإكمال التفريد والفرز أولاً بالخطوة السابقة.
                   </p>
                   <button
@@ -2571,7 +2551,6 @@ export function IntegratedClinicalJourney() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Test description header card */}
                   {(() => {
                     const activeTest = CLINICAL_TESTS.find(t => t.id === assignedTestId);
                     if (!activeTest) return null;
@@ -2778,7 +2757,7 @@ export function IntegratedClinicalJourney() {
                                 <span>الدرجـــة الكليـــة الحاليـــة:</span>
                                 <strong className="text-indigo-400 font-semibold font-black text-xs flex items-center gap-1">
                                   <span>{currentScore}</span>
-                                  <span className="text-[10px] font-medium text-slate-500">من أصل</span>
+                                  <span className="text-[10px] font-medium text-slate-500">/</span>
                                   <span>{activeTest.maxScore}</span>
                                 </strong>
                               </div>
@@ -2928,7 +2907,7 @@ export function IntegratedClinicalJourney() {
                   <span className="text-slate-450 text-[10px] block font-bold text-slate-400">نقاط مقياس {finalReportResult.testId}:</span>
                   <strong className="text-xl font-black text-emerald-400 block pt-0.5" dir="ltr">
                     <span className="font-mono">{finalReportResult.totalScore}</span> 
-                    <span className="text-xs font-medium text-slate-400 mx-1.5 font-sans">من أصل</span> 
+                    <span className="text-slate-500 mx-1.5">/</span> 
                     <span className="font-mono">{CLINICAL_TESTS.find(t=>t.id === finalReportResult.testId)?.maxScore}</span>
                   </strong>
                   <span className="text-[10px] text-slate-300 block font-semibold">{finalReportResult.severity}</span>
