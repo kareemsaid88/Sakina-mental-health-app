@@ -682,6 +682,10 @@ async function initServer() {
   });
 }
 
-initServer().catch((err) => {
-  console.error("Failed to start full-stack server instance:", err);
-});
+if (!process.env.VERCEL) {
+  initServer().catch((err) => {
+    console.error("Failed to start full-stack server instance:", err);
+  });
+}
+
+export default app;
