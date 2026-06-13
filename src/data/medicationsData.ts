@@ -1,3 +1,5 @@
+import { MedicationReminder } from "../types";
+
 // 💊 Comprehensive Psychiatric Medications Directory (الموسوعة الشاملة للأدوية النفسية)
 // Contains local/regional Arab names, international generic active molecules, concentrations, advantages, side effects, and standard treatment times.
 
@@ -350,3 +352,111 @@ export const PSYCHIATRIC_MEDICATIONS: PsychiatricMedication[] = [
     manufacturerInfo: "إيلي ليلي (Eli Lilly) / شركة ليدرز الدوائية وكيميريكا بمصر"
   }
 ];
+
+export function getReportSuggestedMedication(testId: string): PsychiatricMedication {
+  if (testId === "PHQ-9") {
+    return PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-2")!; // Prozac
+  } else if (testId === "GAD-7") {
+    return PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-1")!; // Cipralex
+  } else if (testId === "PSS-10") {
+    return PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-3")!; // Lustral
+  }
+  return PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-1")!; // Default Cipralex
+}
+
+export function getCustomizedMedicationsList(testId: string): MedicationReminder[] {
+  if (testId === "PHQ-9") {
+    const medPrimary = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-2")!; // Prozac
+    const medSecondary = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-12")!; // Seroquel sleep helper
+    
+    return [
+      {
+        id: "cust-m1",
+        nameArabic: `${medPrimary.brandNameLocal} (مضاد اكتئاب وتحسين دافع النشاط)`,
+        nameEnglish: `${medPrimary.brandNameForeign} (${medPrimary.genericName})`,
+        dosage: "20 ملغ (حبة واحدة)",
+        frequency: "يومياً صباحاً بعد الأكل",
+        timesOfDay: ["08:30"],
+        isActive: true,
+        takenToday: []
+      },
+      {
+        id: "cust-m2",
+        nameArabic: `${medSecondary.brandNameLocal} (مساعد وعلاج الأرق بجرعة مخصصة)`,
+        nameEnglish: `${medSecondary.brandNameForeign} (${medSecondary.genericName})`,
+        dosage: "25 ملغ (حبة واحدة قبل النوم)",
+        frequency: "يومياً قبل النوم بـ 30 دقيقة",
+        timesOfDay: ["22:30"],
+        isActive: true,
+        takenToday: []
+      }
+    ];
+  } else if (testId === "GAD-7") {
+    const medPrimary = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-1")!; // Cipralex
+    const medSecondary = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-8")!; // Calmepam mdr/PRN
+    
+    return [
+      {
+        id: "cust-m1",
+        nameArabic: `${medPrimary.brandNameLocal} (مضاد قلق وتوتر معمم وموجات الهلع)`,
+        nameEnglish: `${medPrimary.brandNameForeign} (${medPrimary.genericName})`,
+        dosage: "10 ملغ (نصف حبة صباحاً)",
+        frequency: "يومياً صباحاً",
+        timesOfDay: ["09:00"],
+        isActive: true,
+        takenToday: []
+      },
+      {
+        id: "cust-m2",
+        nameArabic: `${medSecondary.brandNameLocal} (للتحكم في أعراض خفقان وتسارع ضربات القلب السلوكي عند اللزوم)`,
+        nameEnglish: `${medSecondary.brandNameForeign} (${medSecondary.genericName})`,
+        dosage: "1.5 ملغ (حبة واحدة عند اللزوم)",
+        frequency: "عند اللزوم النفسي والشعور بنوبة تسارع أو ضيق تنفس",
+        timesOfDay: ["11:00", "21:00"],
+        isActive: true,
+        takenToday: []
+      }
+    ];
+  } else if (testId === "PSS-10") {
+    const medPrimary = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-3")!; // Lustral
+    const medSecondary = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-8")!; // Calmepam
+    
+    return [
+      {
+        id: "cust-m1",
+        nameArabic: `${medPrimary.brandNameLocal} (انحلال وتخفيف وساوس الضغوط والتوتر وعصب الصدر)`,
+        nameEnglish: `${medPrimary.brandNameForeign} (${medPrimary.genericName})`,
+        dosage: "50 ملغ (حبة واحدة)",
+        frequency: "يومياً صباحاً ومساءً",
+        timesOfDay: ["08:00", "20:00"],
+        isActive: true,
+        takenToday: []
+      },
+      {
+        id: "cust-m2",
+        nameArabic: `${medSecondary.brandNameLocal} (منظم تسارع ضربات القلب السلوكية وتشنج القولون العصبي)`,
+        nameEnglish: `${medSecondary.brandNameForeign} (${medSecondary.genericName})`,
+        dosage: "1.50 ملغ (حبة واحدة عند اللزوم)",
+        frequency: "عند اشتداد رغبة التوتر أو نوبات انقباض المعدة العصبي",
+        timesOfDay: ["13:00"],
+        isActive: true,
+        takenToday: []
+      }
+    ];
+  }
+  
+  // Default mixed list using Cipralex
+  const medDefault = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-1")!;
+  return [
+    {
+      id: "cust-m1",
+      nameArabic: `${medDefault.brandNameLocal} (مضاد اكتئاب وقلق خفيف المتابعة)`,
+      nameEnglish: `${medDefault.brandNameForeign} (${medDefault.genericName})`,
+      dosage: "10 ملغ (نصف حبة)",
+      frequency: "يومياً صباحاً",
+      timesOfDay: ["09:00"],
+      isActive: true,
+      takenToday: []
+    }
+  ];
+}

@@ -80,7 +80,13 @@ export function CbtActTools() {
 
   // 🔄 Sync page data when demographics or localStorage loads
   useEffect(() => {
-    const syncCbtPageData = () => {
+    const syncCbtPageData = (e?: Event) => {
+      if (e && e.type === "sakeenah_patient_updated") {
+        const customEvent = e as CustomEvent;
+        if (customEvent.detail && customEvent.detail.sender === "CbtTools") {
+          return;
+        }
+      }
       try {
         const loggedInUser = localStorage.getItem("sakeenah_logged_in_user");
         if (loggedInUser) {
@@ -88,13 +94,17 @@ export function CbtActTools() {
           if (raw) {
             const data = JSON.parse(raw);
             if (data.testDate) {
-              setCbtStartDate(new Date(data.testDate));
+              setCbtStartDate(prev => {
+                const prevTime = prev ? prev.getTime() : 0;
+                const newTime = new Date(data.testDate).getTime();
+                return prevTime === newTime ? prev : new Date(data.testDate);
+              });
             }
             if (data.reviewsHistory) {
-              setReviewsHistory(data.reviewsHistory);
+              setReviewsHistory(prev => JSON.stringify(prev) === JSON.stringify(data.reviewsHistory) ? prev : data.reviewsHistory);
             }
             if (data.clinicalReport !== undefined) {
-              setClinicalReport(data.clinicalReport);
+              setClinicalReport(prev => JSON.stringify(prev) === JSON.stringify(data.clinicalReport) ? prev : data.clinicalReport);
             }
           }
         } else {
@@ -143,7 +153,7 @@ export function CbtActTools() {
       }
     }
 
-    window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
+    window.dispatchEvent(new CustomEvent("sakeenah_patient_updated", { detail: { sender: "CbtTools" } }));
     alert("تم حذف تقرير المتابعة الدورية المقابل بنجاح.");
   };
 
@@ -166,7 +176,7 @@ export function CbtActTools() {
       }
     }
 
-    window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
+    window.dispatchEvent(new CustomEvent("sakeenah_patient_updated", { detail: { sender: "CbtTools" } }));
     alert("تم حذف تقرير التقييم الإكلينيكي الأساسي والملفات المنضوية به بنجاح.");
   };
 

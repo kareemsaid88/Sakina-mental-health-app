@@ -51,6 +51,8 @@ export function ClinicalTriage({ questionnaireScores, onEmergencyTriggered }: Cl
     }
   ];
 
+  const [isTriageMicSimulated, setIsTriageMicSimulated] = useState(false);
+
   // Start real web-mic recording if allowed
   const startRecording = async () => {
     try {
@@ -66,7 +68,8 @@ export function ClinicalTriage({ questionnaireScores, onEmergencyTriggered }: Cl
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+        const actualMime = mediaRecorder.mimeType || "audio/webm";
+        const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
         setRecordingStatus("جاري تحويل الصوت إلى نص وتحليله إكلينيكياً...");
         
         // Convert to base64
@@ -78,7 +81,7 @@ export function ClinicalTriage({ questionnaireScores, onEmergencyTriggered }: Cl
             const res = await fetch("/api/gemini/transcribe", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ audioBase64: base64Audio, mimeType: "audio/wav" })
+              body: JSON.stringify({ audioBase64: base64Audio, mimeType: actualMime })
             });
             const data = await res.json();
             if (data.transcript) {
@@ -97,17 +100,50 @@ export function ClinicalTriage({ questionnaireScores, onEmergencyTriggered }: Cl
 
       mediaRecorder.start();
       setIsRecording(true);
+      setIsTriageMicSimulated(false);
       setRecordingStatus("جاري تسجيل صوتك الآن... تكلم بفضفضة وبراحة تامة عن معاناتك.");
     } catch (err: any) {
-      console.warn("Camera or Microphone are blocked or unsupported:", err);
-      alert("تعذر الوصول لـ ميكروفون المتصفح (قد يكون بسبب قيود الإطار الآمن). تم إدراج العينات الصوتية المسبقة المتاحة بالصفحة لتتمكن من فحص التقنية دون عوائق.");
+      console.warn("Camera or Microphone are blocked or unsupported, entering simulation mode:", err);
+      setIsTriageMicSimulated(true);
+      setIsRecording(true);
+      setRecordingStatus("نمط المحاكاة الصوتية مفعل بسبب عوائق الميكروفون بالمعاينة...");
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    if (isTriageMicSimulated) {
       setIsRecording(false);
+      
+      const defaultPreset = "أعاني منذ أشهر من نوبات هلع مفاجئة مرافقة لضيق تنفس وتسارع كبير في ضربات قلبي مع قلق دائم.";
+      const customizedText = window.prompt(
+        "تم الكشف عن حظر صلاحية الميكروفون بالمتصفح لإطار الأمان.\n\nمن فضلك، اكتب أو عدل ما نطقته شفهياً أدناه لتفريغه وتسجيله بالضبط كما قلته ودون أي زيادة أو نقصان:",
+        defaultPreset
+      );
+      
+      const textToUse = customizedText !== null ? customizedText : defaultPreset;
+      
+      setRecordingStatus("جاري تحويل الصوت المحاكي للنظام عيادياً...");
+      
+      setTimeout(() => {
+        setComplaintText((prev) => prev ? prev + "\n" + textToUse : textToUse);
+        setVoiceEmotionAnalysis({
+          transcript: textToUse,
+          detectedEmotions: ["انفعال قلق ذعر مقنع", "Clinical Distress"],
+          extractedSymptoms: ["Anxiety / panic", "Emotional fluctuations"],
+          anxietyScore: textToUse.includes("هلع") || textToUse.includes("قلق") ? 92 : 45,
+          tensionLevel: textToUse.includes("هلع") || textToUse.includes("قلق") ? "مرتفع جداً (High Tension)" : "متوسط (Mild Contentment)"
+        });
+        setRecordingStatus("تم تدوين وتحليل محاكاة الصوت بنجاح!");
+      }, 1200);
+    } else {
+      if (mediaRecorderRef.current && isRecording) {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {
+          console.warn(e);
+        }
+        setIsRecording(false);
+      }
     }
   };
 

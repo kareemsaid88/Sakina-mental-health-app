@@ -100,7 +100,7 @@ export default function App() {
           <div>
             <div className="flex items-center gap-1.5">
               <h1 className="text-lg font-black tracking-tight text-white">سَــكِـيـنَـة</h1>
-              <span className="px-2 py-0.5 bg-emerald-950 border border-emerald-900/40 text-emerald-400 text-[9px] font-bold rounded font-mono">Developed by Kareem Abdelhamid</span>
+              <span className="text-[10px] text-white/50 font-normal ml-1.5">(developed by Kareem Abdelhamid)</span>
             </div>
             <p className="text-[10px] text-slate-450 text-slate-400">المنصة الطبية المتكاملة للفرز والدعم الإكلينيكي</p>
           </div>

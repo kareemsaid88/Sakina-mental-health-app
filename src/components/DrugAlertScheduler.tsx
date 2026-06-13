@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Pill, AlarmClock, Plus, Check, Trash, ShieldAlert, Sparkles, User, Info } from "lucide-react";
 import { MedicationReminder } from "../types";
+import { getCustomizedMedicationsList, PSYCHIATRIC_MEDICATIONS } from "../data/medicationsData";
 
 export function DrugAlertScheduler() {
   const [medications, setMedications] = useState<MedicationReminder[]>([
@@ -39,127 +40,64 @@ export function DrugAlertScheduler() {
 
   // 🔄 Load customized user medication dynamically on mount
   useEffect(() => {
-    try {
-      const loggedInKey = localStorage.getItem("sakeenah_logged_in_user");
-      if (loggedInKey) {
-        setCurrentUser(loggedInKey);
-        const rawData = localStorage.getItem(`sakeenah_patient_${loggedInKey}`);
-        if (rawData) {
-          const data = JSON.parse(rawData);
-          const name = data.demographics?.name || loggedInKey;
-          
-          if (data.finalReportResult) {
-            const report = data.finalReportResult;
-            setCurrentDiagnosis(report.testName || report.testId);
-            setSuggestedMed(report.medicationPre || null);
+    const loadMeds = () => {
+      try {
+        const loggedInKey = localStorage.getItem("sakeenah_logged_in_user");
+        if (loggedInKey) {
+          setCurrentUser(loggedInKey);
+          const rawData = localStorage.getItem(`sakeenah_patient_${loggedInKey}`);
+          if (rawData) {
+            const data = JSON.parse(rawData);
+            const name = data.demographics?.name || loggedInKey;
             
-            // Customize medications list according to diagnostic testId
-            let customizedList: MedicationReminder[] = [];
-            
-            if (report.testId === "PHQ-9") {
-              customizedList = [
-                {
-                  id: "cust-m1",
-                  nameArabic: "فلوزاك (مضاد اكتئاب وتحسين دافع النشاط)",
-                  nameEnglish: "Philozac (Fluoxetine)",
-                  dosage: "20 ملغ (حبة واحدة)",
-                  frequency: "يومياً صباحاً بعد الأكل",
-                  timesOfDay: ["08:30"],
-                  isActive: true,
-                  takenToday: []
-                },
-                {
-                  id: "cust-m2",
-                  nameArabic: "تربتيزول (علاج الأرق وتثبيت النوم المفرط)",
-                  nameEnglish: "Tryptizol (Amitriptyline)",
-                  dosage: "10 ملغ (حبة واحدة)",
-                  frequency: "يومياً قبل النوم بـ 30 دقيقة",
-                  timesOfDay: ["22:30"],
-                  isActive: true,
-                  takenToday: []
-                }
-              ];
-              setCustomMsg(`عناية: تم تخصيص قائمة الأدوية المقترحة لـ (${name}) لتناسب تشخيصك بـ [${report.severity}] على مقياس الاكتئاب السريري PHQ-9.`);
-            } else if (report.testId === "GAD-7") {
-              customizedList = [
-                {
-                  id: "cust-m1",
-                  nameArabic: "سيبرالكس (مضاد قلق وتوتر معمم وموجات الهلع)",
-                  nameEnglish: "Cipralex (Escitalopram)",
-                  dosage: "10 ملغ (نصف حبة صباحاً)",
-                  frequency: "يومياً صباحاً",
-                  timesOfDay: ["09:00"],
-                  isActive: true,
-                  takenToday: []
-                },
-                {
-                  id: "cust-m2",
-                  nameArabic: "إندرال (التحكم في أعراض خفقان وتسارع ضربات القلب السلوكي)",
-                  nameEnglish: "Inderal (Propranolol)",
-                  dosage: "10 ملغ (حبة واحدة)",
-                  frequency: "عند اللزوم النفسي والشعور بنوبة تسارع أو ضيق تنفس",
-                  timesOfDay: ["11:00", "21:00"],
-                  isActive: true,
-                  takenToday: []
-                }
-              ];
-              setCustomMsg(`عناية: تم تخصيص هذا الجدول الدوائي لـ (${name}) بمطابقة مباشرة مع تشخيص القلق والهلع [${report.severity}] المقاس سريرياً بمقياس GAD-7.`);
-            } else if (report.testId === "PSS-10") {
-              customizedList = [
-                {
-                  id: "cust-m1",
-                  nameArabic: "بوسبار (انحلال وتخفيف وساوس الضغوط والتوتر وعصب الصدر)",
-                  nameEnglish: "Buspar (Buspirone)",
-                  dosage: "5 ملغ (حبة صباحاً وحبة مساءً)",
-                  frequency: "مرتين بالعمر اليومي (صباحاً/مساءً)",
-                  timesOfDay: ["08:00", "20:00"],
-                  isActive: true,
-                  takenToday: []
-                },
-                {
-                  id: "cust-m2",
-                  nameArabic: "إندرال (منظم تسارع ضربات القلب السلوكية)",
-                  nameEnglish: "Inderal (Propranolol)",
-                  dosage: "10 ملغ",
-                  frequency: "عند اشتداد رغبة التوتر أو نوبات انقباض المعدة العصبي",
-                  timesOfDay: ["13:00"],
-                  isActive: true,
-                  takenToday: []
-                }
-              ];
-              setCustomMsg(`عناية: تم ضبط جرعاتك الموصى بها تلقائياً لـ (${name}) بما يتلاءم مع مؤشرات التوتر النفسي العصبي والمهني [${report.severity}] تحت معايير PSS-10.`);
+            if (data.finalReportResult) {
+              const report = data.finalReportResult;
+              setCurrentDiagnosis(report.testName || report.testId);
+              setSuggestedMed(report.medicationPre || null);
+              
+              // Customize medications list according to diagnostic testId utilizing our unified helper
+              const customizedList = getCustomizedMedicationsList(report.testId);
+              
+              if (report.testId === "PHQ-9") {
+                setCustomMsg(`عناية: تم تخصيص قائمة الأدوية المقترحة لـ (${name}) لتناسب تشخيصك بـ [${report.severity}] على مقياس الاكتئاب السريري PHQ-9.`);
+              } else if (report.testId === "GAD-7") {
+                setCustomMsg(`عناية: تم تخصيص هذا الجدول الدوائي لـ (${name}) بمطابقة مباشرة مع تشخيص القلق والهلع [${report.severity}] المقاس سريرياً بمقياس GAD-7.`);
+              } else if (report.testId === "PSS-10") {
+                setCustomMsg(`عناية: تم ضبط جرعاتك الموصى بها تلقائياً لـ (${name}) بما يتلاءم مع مؤشرات التوتر النفسي العصبي والمهني [${report.severity}] تحت معايير PSS-10.`);
+              } else {
+                setCustomMsg(`بروتوكول معياري: تم توفير جرعات افتراضية إرشادية لـ (${name}) بانتظار استكمال فحصك النفسي المعتمد بالكامل.`);
+              }
+              
+              // Check if user has updated medication state in localStorage before
+              const savedState = localStorage.getItem(`sakeenah_meds_${loggedInKey}`);
+              if (savedState) {
+                setMedications(JSON.parse(savedState));
+              } else {
+                setMedications(customizedList);
+              }
             } else {
-              // Default mixed/light customization
-              customizedList = [
-                {
-                  id: "cust-m1",
-                  nameArabic: "سيبرالكس (مضاد اكتئاب وقلق خفيف المتابعة)",
-                  nameEnglish: "Cipralex (Escitalopram)",
-                  dosage: "10 ملغ (نصف حبة)",
-                  frequency: "يومياً صباحاً",
-                  timesOfDay: ["09:00"],
-                  isActive: true,
-                  takenToday: []
-                }
-              ];
-              setCustomMsg(`بروتوكول معياري: تم توفير جرعات افتراضية إرشادية لـ (${name}) بانتظار استكمال فحصك النفسي المعتمد بالكامل.`);
+              setCustomMsg(`تنبيه للملف الطبي لـ (${name}): لم تقم بإنهاء المقياس النفسي والتشخيص النهائي بعد بالمرحلة الخمسة. يمكنك المتابعة وإرسال الشكوى وتطبيق الفحص لنقوم بتهيئة الأدوية المخصصة لحالتك بدقة.`);
+              
+              const savedState = localStorage.getItem(`sakeenah_meds_${loggedInKey}`);
+              if (savedState) {
+                setMedications(JSON.parse(savedState));
+              } else {
+                setMedications([]);
+              }
             }
-            
-            // Check if user has updated medication state in localStorage before
-            const savedState = localStorage.getItem(`sakeenah_meds_${loggedInKey}`);
-            if (savedState) {
-              setMedications(JSON.parse(savedState));
-            } else {
-              setMedications(customizedList);
-            }
-          } else {
-            setCustomMsg(`تنبيه للملف الطبي لـ (${name}): لم تقم بإنهاء المقياس النفسي والتشخيص النهائي بعد بالمرحلة الخمسة. يمكنك المتابعة وإرسال الشكوى وتطبيق الفحص لنقوم بتهيئة الأدوية المخصصة لحالتك بدقة.`);
           }
         }
+      } catch (e) {
+        console.error("Error initializing medications check", e);
       }
-    } catch (e) {
-      console.error("Error initializing medications check", e);
-    }
+    };
+
+    loadMeds();
+
+    window.addEventListener("sakeenah_patient_updated", loadMeds);
+    return () => {
+      window.removeEventListener("sakeenah_patient_updated", loadMeds);
+    };
   }, []);
 
   // 💾 Automatically save medications adjustments of current user to localStorage
@@ -189,15 +127,26 @@ export function DrugAlertScheduler() {
       takenToday: []
     };
 
-    setMedications([...medications, newMed]);
+    const updatedMeds = [...medications, newMed];
+    setMedications(updatedMeds);
     setNewNameAr("");
     setNewNameEn("");
     setNewDosage("");
     setNewTimes("09:00");
+    
+    // Notify external directory tabs to sync
+    window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
   };
 
   const handleDeleteMed = (id: string) => {
-    setMedications(medications.filter((m) => m.id !== id));
+    const updatedMeds = medications.filter((m) => m.id !== id);
+    setMedications(updatedMeds);
+    
+    // Notify external directory tabs to sync
+    if (currentUser) {
+      localStorage.setItem(`sakeenah_meds_${currentUser}`, JSON.stringify(updatedMeds));
+    }
+    window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
   };
 
   const toggleTakeDose = (medId: string, time: string) => {
@@ -288,6 +237,7 @@ export function DrugAlertScheduler() {
                   takenToday: []
                 };
                 setMedications([...medications, newMed]);
+                window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
                 alert("تم إضافة وربط الدواء العلاجي المقترح من خطتك الطبية لقائمة أدويتك المشخصة بنجاح! 🎉");
               }}
               className="py-2 px-4 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs transition inline-flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-950/20 shrink-0"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { CLINICAL_TESTS } from "../data/clinicalTests";
-import { PSYCHIATRIC_MEDICATIONS } from "../data/medicationsData";
+import { PSYCHIATRIC_MEDICATIONS, getReportSuggestedMedication, getCustomizedMedicationsList } from "../data/medicationsData";
 import { MENTAL_HEALTH_BOOKS, EDUCATIONAL_VIDEOS } from "../data/libraryData";
 import { 
   Lock, Mail, Phone, ShieldCheck, Check, AlertTriangle, 
@@ -94,17 +94,8 @@ export function IntegratedClinicalJourney() {
     medications: "",
   });
 
-  // 🎙️ Step 2: Current Complaint & Recording
+  // 📝 Step 2: Current Complaint (Text Input)
   const [complaintText, setComplaintText] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [voiceTranscriptResult, setVoiceTranscriptResult] = useState<any | null>(null);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordIntervalRef = useRef<any>(null);
 
   // 📝 Step 3: Primary Triage AI Analysis
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -129,30 +120,6 @@ export function IntegratedClinicalJourney() {
   const [agendaMonth, setAgendaMonth] = useState<number>(new Date().getMonth());
   const [currentDailyNote, setCurrentDailyNote] = useState("");
 
-  // 🩺 Step 2: Interactive Smart Doctor Chat States
-  const [complaintMode, setComplaintMode] = useState<"text" | "voice" | "doctor_chat">("text");
-  const [doctorChatActive, setDoctorChatActive] = useState(false);
-  const [doctorChatMessages, setDoctorChatMessages] = useState<Array<{
-    sender: "doctor" | "patient";
-    text: string;
-    nlpEmotionAnalysis?: string[];
-    suggestedClinicalTips?: string;
-    isVoice?: boolean;
-    conversationComplete?: boolean;
-    timestamp: string;
-  }>>([]);
-  const [doctorChatInput, setDoctorChatInput] = useState("");
-  const [isDoctorChatSending, setIsDoctorChatSending] = useState(false);
-  const isChatCompleted = doctorChatMessages.some(m => m.conversationComplete);
-
-  // 🎙️ Chat Voice Recording
-  const [isChatRecording, setIsChatRecording] = useState(false);
-  const [chatRecordingTime, setChatRecordingTime] = useState(0);
-  const [isChatTranscribing, setIsChatTranscribing] = useState(false);
-  const chatMediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chatAudioChunksRef = useRef<Blob[]>([]);
-  const chatRecordIntervalRef = useRef<any>(null);
-
   // Load existing note when day, month, or year changes
   useEffect(() => {
     const existing = patientNotes.find(
@@ -173,72 +140,37 @@ export function IntegratedClinicalJourney() {
   const [reviewsHistory, setReviewsHistory] = useState<any[]>([]);
   const [activeReportModalData, setActiveReportModalData] = useState<any | null>(null);
 
-  // Pre-populate reviewsHistory with defaults if empty to provide a realistic comprehensive medical history archive
-  useEffect(() => {
-    if (isAuthenticated && reviewsHistory.length === 0) {
-      const defaultPeriodicReports = [
-        {
-          date: "تقييم المتابعة الدورية الأول - نهاية الأسبوع الثاني",
-          progressScore: 75,
-          progressStatus: "تحسن إيجابي ملحوظ",
-          clinicalSummary: "أبدى المراجع انخفاضاً معيارياً في مستويات الأرق الليلي بنسبة 30% مع انتظام ضربات القلب الصباحية بفضل التزام جلسات التنفس المربع وتفنيد تشوه «كارثية التوقعات». التجاوب مع دواء سيبيرالكس Cipralex لا بأس به، والجرعة آمنة ومستقرة حالياً.",
-          recommendedAdjustments: [
-            "المواصلة في كتابة مفكرة الأفكار السلوكية وتوسيع سجل إعادة الهيكلة ليشمل الضغوط الاجتماعية.",
-            "رفع وتيرة التنشيط السلوكي بمعدل مرتين أسبوعياً للتأهيل العينائي الكامل.",
-            "الالتزام بتمارين التنفس الصندوقي كدرع واقٍ عند اللزوم."
-          ],
-          medicationCheck: "الاستمرار بجرعة سيبيرالكس Cipralex (10 ملغ) بمعدل نصف قرص يومياً بالمساء.",
-          feedback: "أشعر براحة أكبر، قلبي لم يعد يتسارع في الصباح ونومي استقر بفضل تمرين الشهيق والزفير ومكافحة الأفكار المشوهة.",
-          dayIndex: 14,
-          monthIndex: testDate.getMonth(),
-          year: testDate.getFullYear()
-        },
-        {
-          date: "تقييم المتابعة الدورية الثاني - نهاية الأسبوع الرابع",
-          progressScore: 88,
-          progressStatus: "استقرار سريري تام وممتاز",
-          clinicalSummary: "تراجع حاد في نقاط القلق والوساوس السلوكية للمراجع، حيث استطاع السيطرة على الانفعالات الجسدية واستعاد جودة تواصله الاجتماعي والمهني بمستويات تماثل الشفاء الكامل. لا يوجد أي شكوى من أعراض جانبية ملموسة للعلاج الموصوف.",
-          recommendedAdjustments: [
-            "ممارسة التقبل والالتزام (ACT) كمهارة حياتية مستمرة لمنع الانتكاس.",
-            "المباشرة بتمارين المواجهة التدريجية لتثبيت الممارسات الإدراكية الإيجابية.",
-            "البدء في التخطيط لتقليص أو إنهاء التدخل السلوكي بالتوافق مع المعالج."
-          ],
-          medicationCheck: "الاستمرار على جرعة Cipralex (10 ملغ) بمعدل قرص كامل يومياً لمدة 6 أشهر لتأمين المصل العصبي ومنع الانتكاسة السريعة.",
-          feedback: "سعيد جداً بالتغيير، عدت للعمل وحياتي الاجتماعية تسير بشكل طبيعي وأنام 8 ساعات متواصلة بفضل بروتوكولات المنصة.",
-          dayIndex: 28,
-          monthIndex: testDate.getMonth(),
-          year: testDate.getFullYear()
-        }
-      ];
-      setReviewsHistory(defaultPeriodicReports);
-    }
-  }, [isAuthenticated, reviewsHistory.length, testDate]);
+  // No auto pre-population of unconducted periodic reports to ensure clean patient records
 
   // Save user session changes automatically to localStorage (linked to their unique phone/email ID)
   useEffect(() => {
     if (!isAuthenticated || !authInput) return;
-    try {
-      const payload = {
-        demographics,
-        clinicalHistory,
-        complaintText,
-        clinicalReport,
-        assignedTestId,
-        testAnswers,
-        assignedTestScore,
-        finalReportResult,
-        reviewsHistory,
-        currentStep,
-        testDate: testDate.toISOString(),
-        isSessionEnded,
-        activeSubView,
-        patientNotes
-      };
-      localStorage.setItem(`sakeenah_patient_${authInput.trim().toLowerCase()}`, JSON.stringify(payload));
-      window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
-    } catch (e) {
-      console.error("Error saving patient session", e);
-    }
+    const timer = setTimeout(() => {
+      try {
+        const payload = {
+          demographics,
+          clinicalHistory,
+          complaintText,
+          clinicalReport,
+          assignedTestId,
+          testAnswers,
+          assignedTestScore,
+          finalReportResult,
+          reviewsHistory,
+          currentStep,
+          testDate: testDate.toISOString(),
+          isSessionEnded,
+          activeSubView,
+          patientNotes
+        };
+        localStorage.setItem(`sakeenah_patient_${authInput.trim().toLowerCase()}`, JSON.stringify(payload));
+        window.dispatchEvent(new CustomEvent("sakeenah_patient_updated", { detail: { sender: "ClinicalJourney" } }));
+      } catch (e) {
+        console.error("Error saving patient session", e);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [
     isAuthenticated,
     authInput,
@@ -277,7 +209,10 @@ export function IntegratedClinicalJourney() {
           if (data.testAnswers) setTestAnswers(data.testAnswers);
           if (data.assignedTestScore !== undefined) setAssignedTestScore(data.assignedTestScore);
           if (data.finalReportResult) setFinalReportResult(data.finalReportResult);
-          if (data.reviewsHistory) setReviewsHistory(data.reviewsHistory);
+          if (data.reviewsHistory) {
+            const conductedOnly = data.reviewsHistory.filter((r: any) => r.isConductedByUser === true);
+            setReviewsHistory(conductedOnly);
+          }
           if (data.currentStep) setCurrentStep(data.currentStep);
           if (data.testDate) setTestDate(new Date(data.testDate));
           if (data.isSessionEnded !== undefined) setIsSessionEnded(data.isSessionEnded);
@@ -292,25 +227,34 @@ export function IntegratedClinicalJourney() {
 
   // 🔄 Real-time Reactive synchronization across views/tabs
   useEffect(() => {
-    const syncSession = () => {
+    const syncSession = (e?: Event) => {
+      if (e && e.type === "sakeenah_patient_updated") {
+        const customEvent = e as CustomEvent;
+        if (customEvent.detail && customEvent.detail.sender === "ClinicalJourney") {
+          return;
+        }
+      }
       try {
         const loggedInUser = localStorage.getItem("sakeenah_logged_in_user");
         if (loggedInUser) {
           const raw = localStorage.getItem(`sakeenah_patient_${loggedInUser.trim().toLowerCase()}`);
           if (raw) {
             const data = JSON.parse(raw);
-            if (data.demographics) setDemographics(data.demographics);
-            if (data.clinicalHistory) setClinicalHistory(data.clinicalHistory);
-            if (data.complaintText) setComplaintText(data.complaintText);
-            if (data.clinicalReport !== undefined) setClinicalReport(data.clinicalReport);
-            if (data.assignedTestId) setAssignedTestId(data.assignedTestId);
-            if (data.testAnswers) setTestAnswers(data.testAnswers);
-            if (data.assignedTestScore !== undefined) setAssignedTestScore(data.assignedTestScore);
-            if (data.finalReportResult !== undefined) setFinalReportResult(data.finalReportResult);
-            if (data.reviewsHistory) setReviewsHistory(data.reviewsHistory);
-            if (data.currentStep) setCurrentStep(data.currentStep);
-            if (data.testDate) setTestDate(new Date(data.testDate));
-            if (data.activeSubView) setActiveSubView(data.activeSubView);
+            if (data.demographics) setDemographics(prev => JSON.stringify(prev) === JSON.stringify(data.demographics) ? prev : data.demographics);
+            if (data.clinicalHistory) setClinicalHistory(prev => JSON.stringify(prev) === JSON.stringify(data.clinicalHistory) ? prev : data.clinicalHistory);
+            if (data.complaintText !== undefined) setComplaintText(prev => prev === data.complaintText ? prev : data.complaintText);
+            if (data.clinicalReport !== undefined) setClinicalReport(prev => JSON.stringify(prev) === JSON.stringify(data.clinicalReport) ? prev : data.clinicalReport);
+            if (data.assignedTestId) setAssignedTestId(prev => prev === data.assignedTestId ? prev : data.assignedTestId);
+            if (data.testAnswers) setTestAnswers(prev => JSON.stringify(prev) === JSON.stringify(data.testAnswers) ? prev : data.testAnswers);
+            if (data.finalReportResult !== undefined) setFinalReportResult(prev => JSON.stringify(prev) === JSON.stringify(data.finalReportResult) ? prev : data.finalReportResult);
+            if (data.reviewsHistory) setReviewsHistory(prev => JSON.stringify(prev) === JSON.stringify(data.reviewsHistory) ? prev : data.reviewsHistory);
+            if (data.currentStep) setCurrentStep(prev => prev === data.currentStep ? prev : data.currentStep);
+            if (data.testDate) setTestDate(prev => {
+              const prevTime = prev ? prev.getTime() : 0;
+              const newTime = new Date(data.testDate).getTime();
+              return prevTime === newTime ? prev : new Date(data.testDate);
+            });
+            if (data.activeSubView) setActiveSubView(prev => prev === data.activeSubView ? prev : data.activeSubView);
           }
         }
       } catch (e) {
@@ -329,6 +273,84 @@ export function IntegratedClinicalJourney() {
     };
   }, []);
 
+  const handleLogoutAction = () => {
+    localStorage.removeItem("sakeenah_logged_in_user");
+    setIsAuthenticated(false);
+    setAuthInput("");
+    setAuthError("");
+    setComplaintText("");
+    setClinicalReport(null);
+    setFinalReportResult(null);
+    setAssignedTestScore(null);
+    setTestAnswers({});
+    setCurrentStep(1);
+  };
+
+  const handleDeleteAllData = () => {
+    if (!window.confirm("تحذير سريري حاسم:\n\nهل أنت متأكد من رغبتك في حذف بطاقة الهوية، السيرة الطبية، تقرير الفرز، كافة مقاييسك وأرشيف الأسبوعين؟\n\nهذه الخطوة لا يمكن التراجع عنها وسيتم تصفير البيانات بالكامل!")) return;
+    
+    const loggedInUser = localStorage.getItem("sakeenah_logged_in_user") || authInput;
+    if (loggedInUser) {
+      const emailKey = loggedInUser.trim().toLowerCase();
+      localStorage.removeItem(`sakeenah_patient_${emailKey}`);
+      localStorage.removeItem(`sakeenah_meds_${emailKey}`);
+    }
+    setDemographics({ name: "", age: "", gender: "أنثى", marital: "أعزب", education: "جامعي", job: "" });
+    setClinicalHistory({ pastHistory: "", familyHistory: "", medications: "" });
+    setComplaintText("");
+    setClinicalReport(null);
+    setFinalReportResult(null);
+    setAssignedTestScore(null);
+    setTestAnswers({});
+    setReviewsHistory([]);
+    setCurrentStep(1);
+    setPatientNotes([]);
+    
+    // Clear user log-in session and throw update event
+    localStorage.removeItem("sakeenah_logged_in_user");
+    setIsAuthenticated(false);
+    setAuthInput("");
+    
+    window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
+    alert("تم تصفير وحذف كافة سجلاتك وبياناتك السريرية وجدول أدوية جرعاتك اليومية من متصفحك بالكامل عيادياً.");
+  };
+
+  const handleDeactivateAccount = () => {
+    if (!window.confirm("تأكيد تعطيل الحساب:\n\nسيتم تسجيل خروجكم وتعطيل حساب السكينة مؤقتاً لتجنب استقبال المتابعة الدورية. يمكنك استئناف الجلسات بتسجيل الدخول في أي وقت.")) return;
+    
+    const loggedInUser = localStorage.getItem("sakeenah_logged_in_user") || authInput;
+    if (loggedInUser) {
+      const emailKey = loggedInUser.trim().toLowerCase();
+      // 1. Mark in credentials
+      const credsRaw = localStorage.getItem(`sakeenah_creds_${emailKey}`);
+      if (credsRaw) {
+        try {
+          const creds = JSON.parse(credsRaw);
+          creds.isDeactivated = true;
+          localStorage.setItem(`sakeenah_creds_${emailKey}`, JSON.stringify(creds));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      
+      // 2. Mark in patient record
+      const rawPatient = localStorage.getItem(`sakeenah_patient_${emailKey}`);
+      if (rawPatient) {
+        try {
+          const data = JSON.parse(rawPatient);
+          data.isDeactivated = true;
+          localStorage.setItem(`sakeenah_patient_${emailKey}`, JSON.stringify(data));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
+    handleLogoutAction();
+    window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
+    alert("تم تعطيل حسابكم بالعيادة مؤقتاً بنجاح. سنكون بانتظار عودتكم واستكمال الجلسات في أي وقت.");
+  };
+
   const handleDeleteInitialReport = () => {
     if (!window.confirm("هل أنت متأكد من رغبتك في حذف تقرير التقييم الإكلينيكي الأساسي والملفات المنضوية به؟\n\nتنبيه: سيؤدي ذلك أيضاً لحذف خطة الـ CBT والجرعات الدوائية المشخصة من حسابك.")) return;
     
@@ -336,6 +358,7 @@ export function IntegratedClinicalJourney() {
     setFinalReportResult(null);
     setAssignedTestScore(null);
     setTestAnswers({});
+    setCurrentStep(2); // Redirect back to complaint step
     
     // Auto-save user session changes
     const loggedInUser = localStorage.getItem("sakeenah_logged_in_user") || authInput;
@@ -349,12 +372,16 @@ export function IntegratedClinicalJourney() {
         data.finalReportResult = null;
         data.assignedTestScore = null;
         data.testAnswers = {};
+        data.currentStep = 2; // save redirect step
         localStorage.setItem(uKey, JSON.stringify(data));
       }
+      
+      // Clear associated personal meds list
+      localStorage.removeItem(`sakeenah_meds_${emailKey}`);
     }
     
     window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
-    alert("تم حذف سجل التقرير الأولي والتشخيصات والخطط المرتبطة بنجاح.");
+    alert("تم حذف سجل التقرير الأولي والتشخيصات والخطط والروتين الدوائي بنجاح. وجّهناك إلى تبويب الشكوى للبدء من جديد.");
   };
 
   const handleDeletePeriodicReport = (indexToDelete: number) => {
@@ -429,398 +456,108 @@ export function IntegratedClinicalJourney() {
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginEmail.trim() || !loginPassword) {
-      setAuthError("يرجى ملء جميع الحقول المطلوبة.");
-      return;
-    }
+    setAuthError("");
     const emailKey = loginEmail.trim().toLowerCase();
+    
     const credsRaw = localStorage.getItem(`sakeenah_creds_${emailKey}`);
     if (!credsRaw) {
-      setAuthError("البريد الإلكتروني المدخل غير مسجل لدينا، يرجى التبديل لإنشاء حساب مريض جديد أولاً.");
+      setAuthError("البريد الإلكتروني الذي أدخلته غير مسجل لدينا. تـحقق من البريد أو سجل حساباً جديداً.");
       return;
     }
+    
     try {
       const creds = JSON.parse(credsRaw);
       if (creds.password !== loginPassword) {
-        setAuthError("كلمة المرور المدخلة غير صحيحة، يرجى إعادة المحاولة من جديد.");
+        setAuthError("كلمة المرور غير صحيحة. الرجاء التحقق والمحاولة مرة أخرى.");
         return;
       }
-      setAuthError("");
-      setIsVerifyingAuth(false);
-      setAuthInput(emailKey);
+      
+      // Check if temporary deactivated account
+      if (creds.isDeactivated) {
+        const reactivate = window.confirm("تأكيد التنشيط الإكلينيكي:\n\nأمستعِد للعودة؟ هذا الحساب معطل مؤقتاً بناءً على رغبتك السابقة.\n\nهل ترغب في إعادة تنشيط واستئناف رحلتك العلاجية مع السكينة الآن؟");
+        if (!reactivate) {
+          return;
+        }
+        creds.isDeactivated = false;
+        localStorage.setItem(`sakeenah_creds_${emailKey}`, JSON.stringify(creds));
+        
+        const rawPatient = localStorage.getItem(`sakeenah_patient_${emailKey}`);
+        if (rawPatient) {
+          try {
+            const data = JSON.parse(rawPatient);
+            data.isDeactivated = false;
+            localStorage.setItem(`sakeenah_patient_${emailKey}`, JSON.stringify(data));
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+      
+      setAuthInput(loginEmail);
       setIsAuthenticated(true);
-      localStorage.setItem("sakeenah_logged_in_user", emailKey);
+      localStorage.setItem("sakeenah_logged_in_user", loginEmail);
       restoreUserProfileByEmail(emailKey);
+      window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
     } catch (err) {
-      setAuthError("خطأ في قراءة بيانات الاعتماد.");
+      setAuthError("حدث خطأ ما أثناء محاولة الدخول. برجاء المحاولة مجدداً.");
     }
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!registerName.trim() || !registerEmail.trim() || !registerPassword) {
-      setAuthError("يرجى تعبئة حقل الاسم والبريد الإلكتروني وكلمة المرور كاملاً.");
+    setAuthError("");
+    
+    if (!registerName.trim() || !registerEmail.trim() || !registerPassword.trim()) {
+      setAuthError("الرجاء ملء جميع الحقول المطلوبة.");
       return;
     }
+    
     const emailKey = registerEmail.trim().toLowerCase();
-    const credsRaw = localStorage.getItem(`sakeenah_creds_${emailKey}`);
-    if (credsRaw) {
-      setAuthError("البريد الإلكتروني هذا مستخدم بالفعل ومسجل لدينا، يرجى تسجيل الدخول بدلاً من ذلك.");
+    const existingCreds = localStorage.getItem(`sakeenah_creds_${emailKey}`);
+    if (existingCreds) {
+      setAuthError("هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول للحساب.");
       return;
     }
+    
     try {
-      setAuthError("");
-      setIsVerifyingAuth(false);
-      
-      // Save security credentials
-      const creds = { name: registerName, password: registerPassword };
+      const creds = {
+        name: registerName,
+        email: registerEmail.trim(),
+        password: registerPassword
+      };
       localStorage.setItem(`sakeenah_creds_${emailKey}`, JSON.stringify(creds));
       
-      setAuthInput(emailKey);
+      setDemographics(prev => ({
+        ...prev,
+        name: registerName
+      }));
+      
+      setAuthInput(registerEmail.trim());
       setIsAuthenticated(true);
-      localStorage.setItem("sakeenah_logged_in_user", emailKey);
+      localStorage.setItem("sakeenah_logged_in_user", registerEmail.trim());
       
-      // Initialize with default details
-      setDemographics({
-        name: registerName,
-        age: "30",
-        gender: "أنثى",
-        marital: "أعزّب",
-        education: "جامعي",
-        job: "موظف مالي",
-        chronicDiseases: "لا يوجد"
-      });
+      const freshPayload = {
+        demographics: {
+          name: registerName,
+          gender: "male",
+          age: "",
+          occupation: "",
+          maritalStatus: "single",
+          childrenCount: "0",
+          country: "",
+          medications: ""
+        },
+        clinicalHistory: {},
+        currentStep: 1,
+        activeSubView: "medical_form"
+      };
+      localStorage.setItem(`sakeenah_patient_${emailKey}`, JSON.stringify(freshPayload));
       
-      // Let's also restore if somehow there's session
-      restoreUserProfileByEmail(emailKey);
+      window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
     } catch (err) {
-      setAuthError("خطأ أثناء حفظ تسجيل الحساب الجديد.");
+      setAuthError("حدث خطأ في إنشاء وتأمين الحساب.");
     }
   };
-
-  // Logout action helper
-  const handleLogoutAction = () => {
-    setIsAuthenticated(false);
-    setAuthInput("");
-    setLoginEmail("");
-    setLoginPassword("");
-    setRegisterName("");
-    setRegisterEmail("");
-    setRegisterPassword("");
-    setProfileRestoredMessage(null);
-    localStorage.removeItem("sakeenah_logged_in_user");
-    // Reload components to default states
-    alert("تم تسجيل خروجك بنجاح وأمن جلستك بخصوصية كاملة.");
-    window.location.reload();
-  };
-
-  // 🗑️ Delete entire medical record, reports, self-care plans and medications from account
-  const handleDeleteAllData = () => {
-    const isConfirmed = window.confirm(
-      "تنبيه هام ومصيري: هل أنت متأكد تماماً من رغبتك في حذف وإزالة سجلك الطبي بالكامل، وكافة التقارير الطبية المصدرة، وكافة خطط الدعم الذاتي (CBT) والجرعات الدوائية المشخصة من حسابك؟\n\nهذا الإجراء نهائي وتام تلبيةً لحق الخصوصية والنسيان، ولا يمكن التراجع عنه أبداً."
-    );
-    if (!isConfirmed) return;
-
-    try {
-      const loggedInUser = localStorage.getItem("sakeenah_logged_in_user") || authInput;
-      if (loggedInUser) {
-        const emailKey = loggedInUser.trim().toLowerCase();
-        localStorage.removeItem(`sakeenah_patient_${emailKey}`);
-        localStorage.removeItem(`sakeenah_creds_${emailKey}`);
-        localStorage.removeItem(`sakeenah_meds_${emailKey}`);
-      }
-      
-      // Clear all active CBT agenda days and periodic reports from database/local storage
-      localStorage.removeItem("sakeenah_cbt_agenda_days");
-      localStorage.removeItem("sakeenah_cbt_periodic_reports");
-      
-      // Remove login session
-      localStorage.removeItem("sakeenah_logged_in_user");
-
-      alert("تم حذف سجلك الطبي وكافة التقارير الطبية الصادرة وخطط الدعم الذاتي والأدوية المشخصة بالكامل بنجاح.");
-      window.location.reload();
-    } catch (err) {
-      console.error("Error deleting all patient data", err);
-      alert("حدث خطأ أثناء محاولة حذف السجل الطبي.");
-    }
-  };
-
-  // 🎤 Micro Recording implementation
-  const startVoiceRecording = async () => {
-    audioChunksRef.current = [];
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const actualMime = mediaRecorder.mimeType || "audio/webm";
-        const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-        
-        // Let's call the transcriber API
-        sendVoiceToServer(audioBlob, actualMime);
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-    } catch (err: any) {
-      console.error("Microphone Access Error:", err);
-      alert("تعذر الوصول للميكروفون. تأكد من إعطاء الصلاحيات الكافية.");
-    }
-  };
-
-  const stopVoiceRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      // Stop all tracks to release red light on browser tab
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-    }
-  };
-
-  const sendVoiceToServer = async (blob: Blob, mimeType: string) => {
-    setIsTranscribing(true);
-    try {
-      // Convert blob raw data to base64
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        try {
-          const base64data = reader.result?.toString().split(",")[1];
-          if (!base64data) {
-            setIsTranscribing(false);
-            return;
-          }
-
-          const response = await fetch("/api/gemini/transcribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              audioBase64: base64data,
-              mimeType: mimeType
-            })
-          });
-
-          const data = await response.json();
-          if (data && data.transcript) {
-            setVoiceTranscriptResult(data);
-            const fullText = `[الشكوى المسجلة صوتياً]: ${data.transcript}`;
-            setComplaintText(fullText);
-            setIsTranscribing(false);
-            
-            // Automatically analyze voice transcription to generate initial clinical triage report directly!
-            await handleAnalyzeComplaint(fullText);
-          } else {
-            setIsTranscribing(false);
-          }
-        } catch (innerErr) {
-          console.error("Transcription processing inner error:", innerErr);
-          setIsTranscribing(false);
-        }
-      };
-    } catch (error) {
-      console.error("Transcribing api Error:", error);
-      setIsTranscribing(false);
-    }
-  };
-
-  // 🎙️ Chat Voice Recording & Transcription Handlers
-  const startChatVoiceRecording = async () => {
-    chatAudioChunksRef.current = [];
-    setChatRecordingTime(0);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      chatMediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chatAudioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const actualMime = mediaRecorder.mimeType || "audio/webm";
-        const audioBlob = new Blob(chatAudioChunksRef.current, { type: actualMime });
-        sendChatVoiceToServer(audioBlob, actualMime);
-      };
-
-      mediaRecorder.start();
-      setIsChatRecording(true);
-
-      chatRecordIntervalRef.current = setInterval(() => {
-        setChatRecordingTime((t) => t + 1);
-      }, 1000);
-    } catch (err) {
-      console.error("Chat Microphone Access Error:", err);
-      alert("تعذر الوصول للميكروفون لبدء التسجيل الصوتي بالدردشة.");
-    }
-  };
-
-  const stopChatVoiceRecording = () => {
-    if (chatMediaRecorderRef.current && isChatRecording) {
-      chatMediaRecorderRef.current.stop();
-      setIsChatRecording(false);
-      clearInterval(chatRecordIntervalRef.current);
-      chatMediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
-    }
-  };
-
-  const sendChatVoiceToServer = async (blob: Blob, mimeType: string) => {
-    setIsChatTranscribing(true);
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      reader.onloadend = async () => {
-        try {
-          const base64data = reader.result?.toString().split(",")[1];
-          if (!base64data) {
-            setIsChatTranscribing(false);
-            return;
-          }
-
-          const response = await fetch("/api/gemini/transcribe", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              audioBase64: base64data,
-              mimeType: mimeType
-            })
-          });
-
-          const data = await response.json();
-          if (data && data.transcript) {
-            // Automatically send transcribed voice input as a client message
-            await handleSendDoctorChat(data.transcript, true);
-          } else {
-            alert("تعذر تفريغ المقطع الصوتي، الرجاء تكرار المحاولة بوضوح.");
-          }
-        } catch (innerErr) {
-          console.error("Chat transcription error:", innerErr);
-        } finally {
-          setIsChatTranscribing(false);
-        }
-      };
-    } catch (error) {
-      console.error("Chat recording upload error:", error);
-      setIsChatTranscribing(false);
-    }
-  };
-
-  // 💬 Interactive AI Psychiatric Doctor Chat Handling
-  const handleStartDoctorChat = () => {
-    setDoctorChatActive(true);
-    setDoctorChatMessages([
-      {
-        sender: "doctor",
-        text: `مرحباً بك يا صديقي في عيادتي الإلكترونية الآمنة بـمنظومة "سكينة". أنا هنا بصفتي طبيبك النفسي الذكي ومعالجك السلوكي الموجه لمساعدتك خطوة بخطوة. 
-
-أتفهم ببالغ الاهتمام والرحمة أي عناء تشعر به بصدق. لا تترد أبداً في إبداء جميع معاناتك الحالية وعوارضك النفسية والجسدية (سواء بالكتابة نصاً أو بالتفريغ الصوتي). بمَ تشعر تحديداً في هذه البقعة من حياتك، ومتى بدأ هذا الشعور؟`,
-        nlpEmotionAnalysis: ["تحليل نبرة صوت آمنة وهادفة عيادياً", "مستوى تعاطف طبيب مرتفع", "نغمة هادئة مريحة لعزل الترقب"],
-        suggestedClinicalTips: "تبدأ الجلسة الإرشادية بتدفئة المحادثة وإتاحة مساحة بساحة المريض الكاملة دون استعجال.",
-        timestamp: new Date().toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' })
-      }
-    ]);
-  };
-
-  const handleSendDoctorChat = async (voiceTextText?: string, wasVoiceInput?: boolean) => {
-    const rawTextInput = typeof voiceTextText === "string" ? voiceTextText : doctorChatInput;
-    if (!rawTextInput.trim()) return;
-
-    const userMsg = {
-      sender: "patient" as const,
-      text: rawTextInput,
-      isVoice: !!wasVoiceInput,
-      timestamp: new Date().toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' })
-    };
-
-    const updatedMessages = [...doctorChatMessages, userMsg];
-    setDoctorChatMessages(updatedMessages);
-    if (!voiceTextText) {
-      setDoctorChatInput("");
-    }
-    setIsDoctorChatSending(true);
-
-    try {
-      const response = await fetch("/api/gemini/doctor-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messageHistory: updatedMessages.map(m => ({ sender: m.sender, text: m.text })),
-          newInput: rawTextInput,
-          demographics: demosPayload(),
-          isVoice: !!wasVoiceInput
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("فشلت المحاكاة الاستشارية مع الطبيب الذكي.");
-      }
-
-      const result = await response.json();
-      setDoctorChatMessages((prev) => [
-        ...prev,
-        {
-          sender: "doctor" as const,
-          text: result.reply,
-          nlpEmotionAnalysis: result.nlpEmotionAnalysis,
-          suggestedClinicalTips: result.suggestedClinicalTips,
-          conversationComplete: result.conversationComplete === true || result.conversationComplete === "true",
-          timestamp: new Date().toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
-    } catch (err) {
-      console.error("Doctor chat error:", err);
-      setDoctorChatMessages((prev) => [
-        ...prev,
-        {
-          sender: "doctor" as const,
-          text: "أعتذر منك يا صديقي العزيز، يبدو أن هناك تعثراً مؤقتاً في قنوات الربط السحابي. يرجى إعادة إرسال رسالتك الأخيرة لمتابعة دمج الفحص بساحتك وسوف أجيبك مباشرة.",
-          nlpEmotionAnalysis: ["توقف الاتصال الموحد مؤقتاً"],
-          suggestedClinicalTips: "يرجى التحقق من اتصال الشبكة وإرسال الرسالة من جديد.",
-          timestamp: new Date().toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
-    } finally {
-      setIsDoctorChatSending(false);
-    }
-  };
-
-  const handleEndDoctorChatAndAnalyze = () => {
-    const patientMessagesOnly = doctorChatMessages
-      .filter((m) => m.sender === "patient")
-      .map((m) => m.text);
-
-    if (patientMessagesOnly.length === 0) {
-      alert("الرجاء التحدث أولاً وكتابة شكواك أو تسجيلها والضغط على إرسال للرد على الطبيب الذكي لمباشرة التحليل.");
-      return;
-    }
-
-    const aggregatedComplaint = `[سجل وتاريخ المحاورة الإرشادية الكاملة مع الطبيب النفسي الطبي الذكي]:\n` + 
-      doctorChatMessages.map(m => `${m.sender === "doctor" ? "الطبيب" : "المريض"}: ${m.text}`).join("\n\n");
-    
-    setComplaintText(aggregatedComplaint);
-    handleAnalyzeComplaint(aggregatedComplaint);
-  };
-
-  // ⏳ Smart auto-transition when doctor finishes information gathering
-  useEffect(() => {
-    const lastMsg = doctorChatMessages[doctorChatMessages.length - 1];
-    if (lastMsg && lastMsg.sender === "doctor" && lastMsg.conversationComplete) {
-      const timer = setTimeout(() => {
-        handleEndDoctorChatAndAnalyze();
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [doctorChatMessages]);
 
   // Submit Step 2: current complaint text analysis to compile Step 3
   const handleAnalyzeComplaint = async (textToAnalyze?: string) => {
@@ -910,18 +647,20 @@ export function IntegratedClinicalJourney() {
   const compileFinalDiagnosticPackage = (score: number, test: any) => {
     const interpretation = test.interpret(score);
     
-    // Choose medication recommendation matching severity
+    // Choose medication recommendation matching severity of GAD-7, PHQ-9, or PSS-10
     let matchedMed: any = null;
     let needsMeds = interpretation.severity === "high" || interpretation.severity === "critical";
     
     if (needsMeds) {
-      if (assignedTestId === "PHQ-9") {
-        matchedMed = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-1"); // Cipralex
-      } else if (assignedTestId === "GAD-7") {
-        matchedMed = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-1") || PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-2");
-      } else {
-        matchedMed = PSYCHIATRIC_MEDICATIONS.find(m => m.id === "med-6"); // Seroquel sleep/stress helper
-      }
+      matchedMed = getReportSuggestedMedication(assignedTestId);
+    }
+
+    // Auto-sync medications list to scheduler so that the patient's scheduler aligns instantly
+    const loggedInUser = localStorage.getItem("sakeenah_logged_in_user") || authInput;
+    if (loggedInUser) {
+      const emailKey = loggedInUser.trim().toLowerCase();
+      const customizedMeds = getCustomizedMedicationsList(test.id);
+      localStorage.setItem(`sakeenah_meds_${emailKey}`, JSON.stringify(customizedMeds));
     }
 
     // Select books & videos matching condition
@@ -945,7 +684,7 @@ export function IntegratedClinicalJourney() {
       } else if (interpretation.severity === "medium") {
         clinicalReport.riskLevel = "Moderate";
         clinicalReport.isEmergency = false;
-        clinicalReport.summaryArabic = `بناءً على فحص المعيار السيكومتري الاستدلالي لمقياس ${test.nameArabic} وحصيلته البالغة ${score} نقاط، يقع التشخيص في نطاق الدرجة المعتدلة أو الخفيفة الشدة (${interpretation.levelArabic}). يوضح هذا التوافق الإيجابي صواب التدابير السلوكية وجدول الأيام المدون دون حاجة حتمية لعقاقير كيميائية قوية.`;
+        clinicalReport.summaryArabic = `بناءً على فحص المعيار السيكومتري الاستدلالي لمقياس ${test.nameArabic} وحصيلته البالغة ${score} نقاط، يقع التشخيص في نطاق الدرجة المعتدلة أو الخفيفة الشدة (${interpretation.levelArabic}). يوضح this التوافق الإيجابي صواب التدابير السلوكية وجدول الأيام المدون دون حاجة حتمية لعقاقير كيميائية قوية.`;
       } else if (interpretation.severity === "high") {
         clinicalReport.riskLevel = "High";
         clinicalReport.isEmergency = false;
@@ -968,7 +707,7 @@ export function IntegratedClinicalJourney() {
       recommendedVideos: matchedVideos,
       assignedWorkUpCbt: clinicalReport?.cbtPlan || {
         cognitiveRestructuring: [
-          "تمرين كتابة الأفكار التلقائية السلبية في 5 أعمدة يومياً.",
+          "تمرين كتابة الأفكار التلقائية السليمة في 5 أعمدة يومياً.",
           "التعرف على فخ تضخيم العينات السلبية وكارثية التأويل."
         ],
         behavioralActivation: [
@@ -1017,7 +756,8 @@ export function IntegratedClinicalJourney() {
         progressScore: data.progressScore || 70,
         clinicalSummary: data.clinicalSummary || "تظهر مراجعة التطور هدوءًا واعدًا.",
         recommendedAdjustments: data.recommendedAdjustments || ["متابعة التعرف العضوي على تشتيت القلق."],
-        medicationCheck: data.medicationCheck || "الالتزام الدائم بذات التوقيت المنصرم."
+        medicationCheck: data.medicationCheck || "الالتزام الدائم بذات التوقيت المنصرم.",
+        isConductedByUser: true
       };
 
       setReviewsHistory((prev) => [newReviewNode, ...prev]);
@@ -1070,7 +810,8 @@ export function IntegratedClinicalJourney() {
           "مواصلة إدراج تمرين التنفس المربع وجدولة قلق العصر.",
           "تكثيف التنشيط الرياضي الاسترشادي الصباحي."
         ],
-        medicationCheck: data.medicationCheck || "الاستمرار الدائم والالتزام بالجرعة دون تعديل للأمان والسلامة."
+        medicationCheck: data.medicationCheck || "الاستمرار الدائم والالتزام بالجرعة دون تعديل للأمان والسلامة.",
+        isConductedByUser: true
       };
 
       setReviewsHistory((prev) => [newReviewNode, ...prev]);
@@ -1944,7 +1685,7 @@ export function IntegratedClinicalJourney() {
               <button
                 type="button"
                 onClick={handleLogoutAction}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-red-900/30 bg-red-950/30 text-red-400 hover:bg-red-950 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-red-950/10"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-red-900/30 bg-red-955/30 text-red-400 hover:bg-red-950 hover:text-white transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-red-950/10"
               >
                 تسجيل الخروج 🔐
               </button>
@@ -1952,10 +1693,18 @@ export function IntegratedClinicalJourney() {
               <button
                 type="button"
                 onClick={handleDeleteAllData}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-red-500/35 bg-red-955/35 text-red-400 hover:bg-red-600 hover:text-slate-950 transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-red-950/10"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-red-500/35 bg-red-955/35 text-red-400 hover:bg-red-650 hover:text-slate-950 transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-red-950/10"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 حذف السجل وكافة البيانات 🗑️
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeactivateAccount}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold border border-yellow-500/35 bg-yellow-950/20 text-yellow-400 hover:bg-yellow-600 hover:text-slate-950 transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-yellow-950/10"
+              >
+                تعطيل الحساب مؤقتاً ⏸️
               </button>
             </div>
             
@@ -2026,346 +1775,173 @@ export function IntegratedClinicalJourney() {
                 </div>
               </div>
 
-
-          {/* 1️⃣ STEP 1: PATIENT DEMOGRAPHICS & MEDICAL LIFE HISTORY */}
-          {currentStep === 1 && (
-            <div className="space-y-6 animate-fade-in text-xs max-w-2xl mx-auto">
-              <div className="bg-slate-900/40 p-4 border border-slate-900 rounded-2xl flex items-start gap-3 text-slate-400 leading-relaxed text-right">
-                <Info className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
-                <p>
-                  نبدأ ببناء بطاقة المريض الطبية. يساهم إدخال البيانات الشخصية، الظروف الحياتية، والتاريخ العائلي الدوائي في رفع دقة التشخيصات الطبية المتخصصة والوقوف على مسببات العناء.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
-                <div className="space-y-1.5">
-                  <label className="text-slate-400 font-bold block">الاسم الكريم (اختياري لخصوصيتك):</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: سكينة سلامة"
-                    value={demographics.name}
-                    onChange={(e) => setDemographics({...demographics, name: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 transition"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-slate-400 font-bold block">العمر بالسنوات:</label>
-                  <input
-                    type="number"
-                    value={demographics.age}
-                    onChange={(e) => setDemographics({...demographics, age: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 transition font-mono"
-                  />
-                </div>
-
-                <div className="space-y-1.5 font-semibold">
-                  <label className="text-slate-400 font-bold block">الجنس:</label>
-                  <select
-                    value={demographics.gender}
-                    onChange={(e) => setDemographics({...demographics, gender: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-teal-500 transition cursor-pointer"
-                  >
-                    <option value="أنثى">أنثى (Female)</option>
-                    <option value="ذكر">ذكر (Male)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5 font-semibold">
-                  <label className="text-slate-400 font-bold block">الحالة الاجتماعية:</label>
-                  <select
-                    value={demographics.marital}
-                    onChange={(e) => setDemographics({...demographics, marital: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-teal-500 transition cursor-pointer"
-                  >
-                    <option value="أعزب">أعزب / عزباء</option>
-                    <option value="متزوج">متزوج / متزوجة</option>
-                    <option value="مطلق">مطلق / مطلقة</option>
-                    <option value="أرمل">أرمل / أرملة</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5 font-semibold">
-                  <label className="text-slate-400 font-bold block">المستوى التعليمي:</label>
-                  <select
-                    value={demographics.education}
-                    onChange={(e) => setDemographics({...demographics, education: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-teal-500 transition cursor-pointer"
-                  >
-                    <option value="جامعي">تعليم جامعي (بكالوريوس)</option>
-                    <option value="دراسات عليا">دراسات عليا (ماجستير/دكتوراه)</option>
-                    <option value="ثانوي">ثانوي أو أقل</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-slate-400 font-bold block">الوظيفة / مسمى المهنة اليومي:</label>
-                  <input
-                    type="text"
-                    value={demographics.job}
-                    onChange={(e) => setDemographics({...demographics, job: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 transition"
-                  />
-                </div>
-              </div>
-
-              {/* Advanced Medical / Clinical History */}
-              <div className="space-y-4 pt-4 border-t border-slate-900 text-right">
-                <h4 className="font-extrabold text-slate-250 text-indigo-400">الملف السريري الفني للمريض (التاريخ الطبي)</h4>
-                
-                <div className="space-y-1.5">
-                  <label className="text-slate-400 font-bold block">التاريخ الشخصي للاضطرابات النفسية (هل تم تشخيصك سابقاً بمرض ما؟):</label>
-                  <textarea
-                    rows={2}
-                    placeholder="مثال: تم تشخيصي بالاكتئاب الخفيف قبل سنتين وتناولت دواءً مؤقتاً."
-                    value={clinicalHistory.pastHistory}
-                    onChange={(e) => setClinicalHistory({...clinicalHistory, pastHistory: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-teal-500 transition"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-slate-400 font-bold block">التاريخ العائلي للوعكات المماثلة (Family Psychiatric History):</label>
-                  <textarea
-                    rows={2}
-                    placeholder="مثال: تعاني والدتي من اضطرابات الهلع المزمن وتتناول مهدئات عصبية."
-                    value={clinicalHistory.familyHistory}
-                    onChange={(e) => setClinicalHistory({...clinicalHistory, familyHistory: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-teal-500 transition"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-slate-400 font-bold block">الأدوية النشطة والتركيزات التي تتناولها حالياً (سواء علاجية أو جسدية):</label>
-                  <textarea
-                    rows={2}
-                    placeholder="مثال: أتناول دواء كونكور 5ملغ للضغط بانتظام."
-                    value={clinicalHistory.medications}
-                    onChange={(e) => setClinicalHistory({...clinicalHistory, medications: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-teal-500 transition"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep(2)}
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-                >
-                  حفظ البيانات والتقدم للشكوى الحالية
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-
-
-          {/* 2️⃣ STEP 2: PROVIDE COMPLAINT (WRITTEN + INTEGRATED VOICE RECORDER + INTERACTIVE AI CHAT) */}
-          {currentStep === 2 && (
-            <div className="space-y-6 animate-fade-in text-xs max-w-2xl mx-auto">
-              <div className="text-right space-y-2">
-                <span className="px-2.5 py-0.5 bg-indigo-950 text-indigo-400 border border-indigo-900 rounded font-bold">بوابة الإدلاء بالشكوى الحالية</span>
-                <h4 className="text-base font-black text-slate-100">بمَ تشعر في مساحة حياتك وسجل سكينتك حالياً؟</h4>
-                <p className="text-slate-400 leading-relaxed">
-                  يرجى تسليم الشكوى من خلال إحدى الخيارات المتاحة أدناه. يمكنك كتابتها مباشرة، تسجيل بوحك الصوتي المستعجل، أو الدخول في حوار تفاعلي وجلسة استرشادية ممتدة مع طبيبنا النفسي الذكي (الذي يقوم بفحص نغمة الصوت ونبض الكلمات عاطفياً عبر خوارزميات NLP المتقدمة).
-                </p>
-              </div>
-
-              {/* COMPLAINT SUBMISSION MODE SELECTION TABS */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-950 p-1.5 rounded-2xl border border-slate-900 mb-6">
-                <button
-                  type="button"
-                  onClick={() => setComplaintMode("text")}
-                  className={`py-2 px-3 rounded-xl transition text-[11px] font-black cursor-pointer text-center flex items-center justify-center gap-1.5 ${
-                    complaintMode === "text"
-                      ? "bg-teal-600/15 border border-teal-500/30 text-teal-400 font-bold"
-                      : "text-slate-400 hover:text-slate-200 border border-transparent"
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>كتابة الشكوى نصياً</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setComplaintMode("voice")}
-                  className={`py-2 px-3 rounded-xl transition text-[11px] font-black cursor-pointer text-center flex items-center justify-center gap-1.5 ${
-                    complaintMode === "voice"
-                      ? "bg-teal-600/15 border border-teal-500/30 text-teal-400 font-bold"
-                      : "text-slate-400 hover:text-slate-200 border border-transparent"
-                  }`}
-                >
-                  <Mic className="w-3.5 h-3.5" />
-                  <span>التسجيل الصوتي المستعجل</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setComplaintMode("doctor_chat");
-                    if (!doctorChatActive) {
-                      handleStartDoctorChat();
-                    }
-                  }}
-                  className={`py-2 px-3 rounded-xl transition text-[11px] font-black cursor-pointer text-center flex items-center justify-center gap-1.5 relative ${
-                    complaintMode === "doctor_chat"
-                      ? "bg-teal-600/15 border border-teal-500/40 text-teal-400 font-bold"
-                      : "text-slate-400 hover:text-slate-200 border border-transparent"
-                  }`}
-                >
-                  <Bot className="w-3.5 h-3.5 text-teal-400" />
-                  <span>المحادثة مع الطبيب الذكي</span>
-                  <span className="absolute -top-1.5 -left-1 sm:left-2 bg-red-650 bg-red-600 text-white font-extrabold text-[8px] px-1.5 py-0.5 rounded-full animate-bounce">جديد 🔥</span>
-                </button>
-              </div>
-
-              {/* 1. TEXT COMPLAINT MODE */}
-              {complaintMode === "text" && (
-                <div className="space-y-4 animate-fade-in">
-                  <div className="space-y-1.5 text-right">
-                    <label className="text-slate-350 font-black block text-xs">صِف شكواك السلوكية وحالتك النفسية بالتفصيل:</label>
-                    <p className="text-[10px] text-slate-400 leading-normal mb-2">اكتب كل الأفكار السلوكية المزعجة، الأعراض العضوية والجسدية المصاحبة، أو الهواجس اليومية المسببة للتعب:</p>
-                    <textarea
-                      rows={6}
-                      required
-                      placeholder="أعاني من ضيق شديد بالصدر وخوف من التقييم الاجتماعي وصعوبات في النوم والاستغراق الفكري منذ عدة أسابيع..."
-                      value={complaintText}
-                      onChange={(e) => setComplaintText(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 text-xs text-white leading-loose focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition font-semibold"
-                    />
+              {/* 1️⃣ STEP 1: PATIENT DEMOGRAPHICS & MEDICAL LIFE HISTORY */}
+              {currentStep === 1 && (
+                <div className="space-y-6 animate-fade-in text-xs max-w-2xl mx-auto">
+                  <div className="bg-slate-900/40 p-4 border border-slate-900 rounded-2xl flex items-start gap-3 text-slate-400 leading-relaxed text-right">
+                    <Info className="w-5 h-5 text-teal-400 shrink-0 mt-0.5" />
+                    <p>
+                      نبدأ ببناء بطاقة المريض الطبية. يساهم إدخال البيانات الشخصية، الظروف الحياتية، والتاريخ العائلي الدوائي في رفع دقة التشخيصات الطبية المتخصصة والوقوف على مسببات العناء.
+                    </p>
                   </div>
 
-                  <div className="flex justify-between pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentStep(1)}
-                      className="px-4 py-2 bg-slate-900 hover:bg-slate-850 text-slate-300 rounded-xl font-bold cursor-pointer"
-                    >
-                      ملف الهوية والبيانات
-                    </button>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 font-bold block">الاسم الكريم (اختياري لخصوصيتك):</label>
+                      <input
+                        type="text"
+                        placeholder="مثال: سكينة سلامة"
+                        value={demographics.name}
+                        onChange={(e) => setDemographics({...demographics, name: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
 
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 font-bold block">العمر بالسنوات:</label>
+                      <input
+                        type="number"
+                        value={demographics.age}
+                        onChange={(e) => setDemographics({...demographics, age: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 transition font-mono"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 font-semibold">
+                      <label className="text-slate-400 font-bold block">الجنس:</label>
+                      <select
+                        value={demographics.gender}
+                        onChange={(e) => setDemographics({...demographics, gender: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-teal-500 transition cursor-pointer"
+                      >
+                        <option value="أنثى">أنثى (Female)</option>
+                        <option value="ذكر">ذكر (Male)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5 font-semibold">
+                      <label className="text-slate-400 font-bold block">الحالة الاجتماعية:</label>
+                      <select
+                        value={demographics.marital}
+                        onChange={(e) => setDemographics({...demographics, marital: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-teal-500 transition cursor-pointer"
+                      >
+                        <option value="أعزب">أعزب / عزباء</option>
+                        <option value="متزوج">متزوج / متزوجة</option>
+                        <option value="مطلق">مطلق / مطلقة</option>
+                        <option value="أرمل">أرمل / أرملة</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5 font-semibold">
+                      <label className="text-slate-400 font-bold block">المستوى التعليمي:</label>
+                      <select
+                        value={demographics.education}
+                        onChange={(e) => setDemographics({...demographics, education: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-teal-500 transition cursor-pointer"
+                      >
+                        <option value="جامعي">تعليم جامعي (بكالوريوس)</option>
+                        <option value="دراسات عليا">دراسات عليا (ماجستير/دكتوراه)</option>
+                        <option value="ثانوي">ثانوي أو أقل</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 font-bold block">الوظيفة / مسمى المهنة اليومي:</label>
+                      <input
+                        type="text"
+                        value={demographics.job}
+                        onChange={(e) => setDemographics({...demographics, job: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Advanced Medical / Clinical History */}
+                  <div className="space-y-4 pt-4 border-t border-slate-900 text-right">
+                    <h4 className="font-extrabold text-indigo-400">الملف السريري الفني للمريض (التاريخ الطبي)</h4>
+                    
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 font-bold block">التاريخ الشخصي للاضطرابات النفسية (هل تم تشخيصك سابقاً بمرض ما؟):</label>
+                      <textarea
+                        rows={2}
+                        placeholder="مثال: تم تشخيصي بالاكتئاب الخفيف قبل سنتين وتناولت دواءً مؤقتاً."
+                        value={clinicalHistory.pastHistory}
+                        onChange={(e) => setClinicalHistory({...clinicalHistory, pastHistory: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 font-bold block">التاريخ العائلي للوعكات المماثلة (Family Psychiatric History):</label>
+                      <textarea
+                        rows={2}
+                        placeholder="مثال: تعاني والدتي من اضطرابات الهلع المزمن وتتناول مهدئات عصبية."
+                        value={clinicalHistory.familyHistory}
+                        onChange={(e) => setClinicalHistory({...clinicalHistory, familyHistory: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-slate-400 font-bold block">الأدوية النشطة والتركيزات التي تتناولها حالياً (سواء علاجية أو جسدية):</label>
+                      <textarea
+                        rows={2}
+                        placeholder="مثال: أتناول دواء كونكور 5ملغ للضغط بانتظام."
+                        value={clinicalHistory.medications}
+                        onChange={(e) => setClinicalHistory({...clinicalHistory, medications: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-teal-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-4 flex justify-end">
                     <button
                       type="button"
-                      onClick={() => handleAnalyzeComplaint()}
-                      disabled={isAnalyzing}
-                      className="px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-slate-950 font-black rounded-xl transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-md shadow-teal-950/10"
+                      onClick={() => setCurrentStep(2)}
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
                     >
-                      {isAnalyzing ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          جاري تحليل الشكوى وتوليد تقرير أولي شامل...
-                        </>
-                      ) : (
-                        <>
-                          تحليل الشكوى وتوليد التقرير والفرز الإكلينيكي الأولي
-                          <ChevronLeft className="w-4 h-4" />
-                        </>
-                      )}
+                      حفظ البيانات والتقدم للشكوى الحالية
+                      <ChevronLeft className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* 2. VOICE COMPLAINT MODE */}
-              {complaintMode === "voice" && (
-                <div className="space-y-4 animate-fade-in bg-slate-900/40 p-5 rounded-2xl border border-slate-850">
-                  <span className="font-extrabold text-slate-200 block text-right">خيار التسجيل والتحليل الصوتي المستعجل (فحص نغمة الصوت):</span>
-                  
-                  <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
-                    <div className="flex items-center gap-3">
-                      {isRecording ? (
-                        <button
-                          type="button"
-                          onClick={stopVoiceRecording}
-                          className="p-4 bg-red-600 hover:bg-red-700 text-white rounded-full transition flex items-center justify-center cursor-pointer shadow-lg shadow-red-950/20"
-                        >
-                          <Square className="w-5 h-5 fill-white" />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={startVoiceRecording}
-                          disabled={isTranscribing}
-                          className="p-4 bg-teal-600 hover:bg-teal-700 text-slate-950 rounded-full transition flex items-center justify-center cursor-pointer disabled:opacity-40 shadow-lg shadow-teal-900/20"
-                        >
-                          <Mic className="w-5 h-5 fill-slate-950" />
-                        </button>
-                      )}
-
-                      <div className="text-right">
-                        <strong className="text-slate-200 block text-xs">
-                          {isRecording ? "جاري تسجيل صوتك الطبي..." : "اضغط للبدء في الإدلاء الصوتي"}
-                        </strong>
-                        <span className="text-[10px] text-slate-400 block">
-                          {isRecording ? `توقيت البث المفتوح: ${recordingTime} ثوان` : "الحدود الموصى بها هي دقيقة ونصف كمساق صوتي لنتفحص عاطفتك."}
-                        </span>
-                      </div>
-                    </div>
-
-                    {isRecording && (
-                      <div className="flex items-center gap-1">
-                        <div className="w-1.5 h-6 bg-red-500 rounded animate-pulse" />
-                        <div className="w-1.5 h-10 bg-red-500 rounded animate-pulse delay-75" />
-                        <div className="w-1.5 h-4 bg-red-500 rounded animate-pulse delay-150" />
-                        <div className="w-1.5 h-8 bg-red-500 rounded animate-pulse delay-75" />
-                        <div className="w-1.5 h-6 bg-red-500 rounded animate-pulse" />
-                      </div>
-                    )}
-
-                    {audioUrl && !isRecording && (
-                      <div className="flex items-center gap-2 bg-slate-950 p-2 border border-slate-900 rounded-xl">
-                        <audio src={audioUrl} controls className="h-8 max-w-[200px]" />
-                      </div>
-                    )}
+              {/* 2️⃣ STEP 2: PROVIDE COMPLAINT (WRITTEN ONLY) */}
+              {currentStep === 2 && (
+                <div className="space-y-6 animate-fade-in text-xs max-w-2xl mx-auto">
+                  <div className="text-right space-y-2">
+                    <span className="px-2.5 py-0.5 bg-indigo-950 text-indigo-400 border border-indigo-900 rounded font-bold">بوابة الإدلاء بالشكوى الحالية</span>
+                    <h4 className="text-base font-black text-slate-100">بمَ تشعر في مساحة حياتك وسجل سكينتك حالياً؟</h4>
+                    <p className="text-slate-400 leading-relaxed">
+                      يرجى كتابة شكواك نصياً بالتفصيل أدناه لمباشرة الفرز والتحليل الإكلينيكي وحساب محاذير الأعراض واقتراح المقاييس المعتمدة.
+                    </p>
                   </div>
 
-                  {isTranscribing && (
-                    <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 text-center text-[10px] text-teal-400 flex items-center justify-center gap-2 font-bold animate-pulse">
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      جاري إرسال المقطع الصوتي للفحص الفكري العيادي وبدء تفكيك العواطف والنغمات المضمنة...
+                  <div className="space-y-4 animate-fade-in bg-slate-900/40 p-6 rounded-3xl border border-slate-850">
+                    <div className="space-y-2 text-right">
+                      <label className="text-slate-350 font-black block text-xs">صِف شكواك السلوكية وحالتك النفسية بالتفصيل:</label>
+                      <p className="text-[10px] text-slate-400 leading-normal mb-2">اكتب كل الأفكار السلوكية المزعجة، الأعراض العضوية والجسدية المصاحبة، أو الهواجس اليومية المسببة للتعب:</p>
+                      <textarea
+                        rows={8}
+                        required
+                        placeholder="أعاني من ضيق شديد بالصدر وخوف من التقييم الاجتماعي وصعوبات في النوم والاستغراق الفكري منذ عدة أسابيع..."
+                        value={complaintText}
+                        onChange={(e) => setComplaintText(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs text-white leading-loose focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition font-semibold"
+                      />
                     </div>
-                  )}
 
-                  {voiceTranscriptResult && (
-                    <div className="bg-teal-950/20 border border-teal-900/30 p-4 rounded-xl space-y-3 leading-loose text-right text-[11px]">
-                      <span className="inline-flex items-center gap-1 text-teal-400 font-bold">
-                        <ShieldCheck className="w-4 h-4 text-teal-400" /> ملامح التفريغ والتحليل الصوتي المستخرج:
-                      </span>
-                      <p className="text-slate-300 bg-slate-950/60 p-3.5 rounded border border-slate-900">
-                        "{voiceTranscriptResult.transcript}"
-                      </p>
-                      <div className="grid grid-cols-2 gap-4 pt-1 font-semibold text-[10px]">
-                        <div>
-                          <span className="text-slate-400 block mb-1">المشاعر المستقرة بصوتك:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {voiceTranscriptResult.detectedEmotions?.map((e: string, idx: number) => (
-                              <span key={idx} className="bg-indigo-950 text-indigo-400 border border-indigo-900/60 px-2 py-0.5 rounded text-[9px]">{e}</span>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-slate-400 block mb-1">الأعراض السريرية الملتقطة:</span>
-                          <div className="flex flex-wrap gap-1">
-                            {voiceTranscriptResult.extractedSymptoms?.map((s: string, idx: number) => (
-                              <span key={idx} className="bg-purple-950 text-purple-400 border border-purple-900/60 px-2 py-0.5 rounded text-[9px]">{s}</span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    <div className="flex justify-between pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentStep(1)}
+                        className="px-4 py-2 bg-slate-900 hover:bg-slate-850 text-slate-300 rounded-xl font-bold cursor-pointer"
+                      >
+                        السابق: ملف الهوية والبيانات
+                      </button>
 
-                  <div className="flex justify-between pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentStep(1)}
-                      className="px-4 py-2 bg-slate-900 hover:bg-slate-850 text-slate-300 rounded-xl font-bold cursor-pointer"
-                    >
-                      ملف الهوية والبيانات
-                    </button>
-                    
-                    {voiceTranscriptResult && (
                       <button
                         type="button"
                         onClick={() => handleAnalyzeComplaint()}
@@ -2375,233 +1951,22 @@ export function IntegratedClinicalJourney() {
                         {isAnalyzing ? (
                           <>
                             <RefreshCw className="w-4 h-4 animate-spin" />
-                            جاري التوليد...
+                            جاري تحليل الشكوى وتوليد تقرير أولي شامل...
                           </>
                         ) : (
                           <>
-                            تحليل الشكوى وتوليد التقرير
+                            تحليل الشكوى وتوليد التقرير والفرز الإكلينيكي الأولي
                             <ChevronLeft className="w-4 h-4" />
                           </>
                         )}
                       </button>
-                    )}
+                    </div>
                   </div>
                 </div>
               )}
-
-              {/* 3. INTERACTIVE AI SMART DOCTOR CHAT MODE */}
-              {complaintMode === "doctor_chat" && (
-                <div className="space-y-4 animate-fade-in text-right">
-                  <div className="bg-slate-950 p-4 border border-teal-950/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 bg-teal-500/10 border border-teal-500/25 text-teal-400 rounded-full flex items-center justify-center relative">
-                        <Bot className="w-5 h-5 text-teal-400" />
-                        <span className="w-2 h-2 bg-green-500 rounded-full absolute bottom-0 right-0 border border-slate-950 animate-pulse" />
-                      </div>
-                      <div>
-                        <h5 className="font-extrabold text-xs text-slate-150 text-slate-100">دردشة الطبيب النفسي الطبي الذكي 🩺</h5>
-                        <p className="text-[10px] text-slate-400 mt-0.5">الدكتور كريم - مستشار العلاج المعرفي السلوكي الموجه (CBT)</p>
-                      </div>
-                    </div>
-                    <div>
-                      <span className="bg-teal-950/50 border border-teal-900/40 text-teal-400 px-2.5 py-1 rounded-xl text-[9px] font-bold">بوابة عاطفة نغمة الصوت و NLP</span>
-                    </div>
-                  </div>
-
-                  {/* Chat messages viewport */}
-                  <div className="bg-slate-900/35 border border-slate-850 rounded-2xl p-4 h-[350px] overflow-y-auto space-y-4 flex flex-col justify-start">
-                    {doctorChatMessages.map((msg, index) => (
-                      <div
-                        key={index}
-                        className={`flex flex-col max-w-[85%] ${
-                          msg.sender === "doctor" ? "self-start text-right" : "self-end text-left items-end"
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 mb-1 justify-end">
-                          <span className="text-[9px] text-slate-500">{msg.timestamp}</span>
-                          <span className="text-[10px] text-teal-400 font-extrabold">
-                            {msg.sender === "doctor" ? "الطبيب الذكي" : "أنت (مقاولة)"}
-                          </span>
-                        </div>
-
-                        <div
-                          className={`p-3.5 rounded-2xl text-[11px] leading-relaxed font-semibold transition text-right ${
-                            msg.sender === "doctor"
-                              ? "bg-slate-900 border border-slate-800 text-slate-200 rounded-tr-none"
-                              : "bg-teal-600 border border-teal-500/20 text-slate-950 rounded-tl-none font-bold"
-                          }`}
-                        >
-                          {msg.isVoice && (
-                            <span className="inline-flex items-center gap-1 text-[9px] bg-slate-950/30 px-2 py-0.5 rounded font-black mb-1.5 text-slate-900">
-                              <Volume2 className="w-3 h-3 text-slate-900" /> تم التفريغ من تسجيلك ونبرتك الصوتية
-                            </span>
-                          )}
-                          <p className="whitespace-pre-wrap">{msg.text}</p>
-                        </div>
-
-                        {/* NLP vocal features analyzed indicators from Dr response */}
-                        {msg.sender === "doctor" && msg.nlpEmotionAnalysis && msg.nlpEmotionAnalysis.length > 0 && (
-                          <div className="mt-2 text-right space-y-1 w-full">
-                            <span className="text-[9px] text-indigo-400 font-black block">⚙️ علامات نبر عاطفة الحنجرة المستوحاة من تفريغ حديثك عيادياً (Speech Acoustic & NLP Analysis):</span>
-                            <div className="flex flex-wrap gap-1 justify-start">
-                              {msg.nlpEmotionAnalysis.map((tag, idx) => (
-                                <span
-                                  key={idx}
-                                  className="bg-indigo-950/75 text-indigo-400 border border-indigo-900/55 text-[9px] px-2 py-0.5 rounded-lg font-bold"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                            {msg.suggestedClinicalTips && (
-                              <p className="text-[9px] text-teal-400 italic font-black bg-teal-950/15 p-2 rounded-xl border border-teal-900/30 mt-1.5 block">
-                                💡 ملاحظة المعالج السلوكي: {msg.suggestedClinicalTips}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {isDoctorChatSending && (
-                      <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800 self-start text-[10px] text-teal-400 font-black flex items-center gap-2 animate-pulse">
-                        <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce" />
-                        <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce delay-75" />
-                        <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-bounce delay-150" />
-                        جاري تحليل حديثك، وصياغة الرد الطبي والأسئلة الاستكشافية...
-                      </div>
-                    )}
-
-                    {isChatTranscribing && (
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 self-end text-[10px] text-orange-400 font-black flex items-center gap-2 animate-pulse">
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        جاري استخلاص نغمة الصوت وتحويل تفريغ حبالك الصوتية لـ NLP...
-                      </div>
-                    )}
-
-                    {isChatCompleted && (
-                      <div className="bg-emerald-950/35 border border-emerald-500/30 p-4 rounded-2xl text-right space-y-2 mt-4 animate-pulse">
-                        <div className="flex items-center gap-2 text-emerald-400 font-extrabold text-[11px]">
-                          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 animate-spin" />
-                          <span>طبيبك النفسي الذكي أكمل جمع التفاصيل الطبية وبدأ التحليل التراكمي!</span>
-                        </div>
-                        <p className="text-[10px] text-slate-300 leading-relaxed font-bold">
-                          لقد تفحص الطبيب تفريغاتك وأعراضك ونغمة حبالك الصوتية بالكامل، وهو جاهز لصياغة التقرير مع تفعيل بروتوكولات CBT. جاري توجيهك التلقائي لقسم التشخيص والتقرير الطبي خلال 5 ثوانٍ...
-                        </p>
-                        <div className="flex justify-end pt-1">
-                          <button
-                            type="button"
-                            onClick={handleEndDoctorChatAndAnalyze}
-                            className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center gap-1"
-                          >
-                            <span>انتقل فوراً لصفحة التشخيص والتقرير 🚀</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Message Input controls */}
-                  <div className="bg-slate-900/40 border border-slate-850 p-3 rounded-2xl">
-                    <div className="flex flex-col sm:flex-row items-center gap-2">
-                      <div className="flex-1 w-full flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleSendDoctorChat()}
-                          disabled={isDoctorChatSending || !doctorChatInput.trim() || isChatCompleted}
-                          className="p-3 bg-teal-600 disabled:opacity-45 hover:bg-teal-700 text-slate-950 rounded-xl transition cursor-pointer shrink-0"
-                          title="إرسال"
-                        >
-                          <Send className="w-4 h-4 transform rotate-180" />
-                        </button>
-
-                        <input
-                          type="text"
-                          placeholder={
-                            isChatCompleted
-                              ? "تم إنهاء الجلسة واستيفاء كافة البيانات عيادياً..."
-                              : isChatTranscribing
-                              ? "جاري إدخال التفريغ الصوتي..."
-                              : isChatRecording
-                              ? "جاري تلقي البث الميكروفوني لصوتك..."
-                              : "اكتب هنا للرد على استفسارات طبيب السكينة الذكي..."
-                          }
-                          value={doctorChatInput}
-                          onChange={(e) => setDoctorChatInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && doctorChatInput.trim() && !isDoctorChatSending && !isChatCompleted) {
-                              handleSendDoctorChat();
-                            }
-                          }}
-                          disabled={isDoctorChatSending || isChatRecording || isChatCompleted}
-                          className="flex-grow bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-teal-400 font-bold disabled:opacity-40"
-                        />
-                      </div>
-
-                      {/* Micro Recorder for Interactive Chat */}
-                      <div className="w-full sm:w-auto flex justify-end">
-                        {isChatRecording ? (
-                          <button
-                            type="button"
-                            onClick={stopChatVoiceRecording}
-                            className="w-full sm:w-auto p-3 bg-red-650 bg-red-650 hover:bg-red-700 text-white rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 px-4 font-black text-[10px]"
-                          >
-                            <Square className="w-3 h-3 fill-white animate-pulse" />
-                            <span>إيقاف تسجيل الرد الصوتي ({chatRecordingTime}ث)</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={startChatVoiceRecording}
-                            disabled={isDoctorChatSending || isChatTranscribing || isChatCompleted}
-                            className="w-full sm:w-auto p-3 bg-indigo-900 hover:bg-indigo-950 text-indigo-200 border border-indigo-850 rounded-xl transition cursor-pointer flex items-center justify-center gap-1.5 px-4 font-black text-[10px] disabled:opacity-30"
-                          >
-                            <Mic className="w-3.5 h-3.5" />
-                            <span>تسجيل الرد بالصوت 🎙️</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* End active session & review report generation */}
-                  <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-3 mt-4 bg-teal-950/15 p-4 rounded-2xl border border-teal-900/25">
-                    <div className="text-right">
-                      <h6 className="font-extrabold text-teal-400 text-[11px]">هل أكملت الإجابة والبوح بكافة تفاصيل حالتك؟</h6>
-                      <p className="text-[10px] text-slate-400 mt-1 leading-relaxed">
-                        عند الضغط على إنهاء، سيقوم الطبيب بتلخيص الجلسة والدردشة بالكامل، واستخلاص مفرِدات التوطين، ودمجها مع تقنيات CBT/ACT لتشخيص شامل وتحويلك للمقاييس السريرية تلقائياً.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleEndDoctorChatAndAnalyze}
-                      disabled={isAnalyzing || doctorChatMessages.filter(m => m.sender === "patient").length === 0}
-                      className="w-full sm:w-auto px-5 py-3 bg-red-600 hover:bg-red-700 text-white font-extrabold rounded-xl text-center cursor-pointer transition flex items-center justify-center gap-2 shadow-lg shadow-red-950/20 disabled:opacity-40 shrink-0"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          جاري تحليل الجلسة وصياغة التقرير...
-                        </>
-                      ) : isChatCompleted ? (
-                        <>
-                          جاري نقلك للتحليل تلقائياً...
-                        </>
-                      ) : (
-                        <>
-                          إنهاء المحادثة وتحليل الشكوى للتشخيص 📥
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </>
-      ) : (
-        <>
+            </>
+          ) : (
+            <>
           {/* 📂 COMPREHENSIVE MEDICAL RECORD PORTAL */}
           <div id="patient-medical-archive" className="space-y-6">
                 
@@ -3160,67 +2525,67 @@ export function IntegratedClinicalJourney() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-900 space-y-1.5">
                     <span className="text-[10px] text-teal-400 block font-bold">● الوصف والفضفضة اللفظية للوعكة (المدخل اللغوي):</span>
-                    <p className="text-[10px] text-slate-355 italic leading-relaxed">
+                    <p className="text-[10px] text-slate-300 italic leading-relaxed">
                       "{complaintText || "تم الفحص والفضفضة الصوتية الذكية"}"
                     </p>
                     <span className="text-[9px] text-slate-500 block pt-1 border-t border-slate-900/50">تمت معالجة المدخل دلالياً بدقة عالية</span>
                   </div>
 
-                  <div className="bg-slate-950/65 p-4 rounded-2xl border border-slate-900 space-y-1.5 text-right">
+                  <div className="bg-slate-950/65 p-4 rounded-2xl border border-slate-900 space-y-1.5 text-right font-sans">
                     <span className="text-[10px] text-indigo-400 block font-bold">● الدرجة والتحليل السيكومتري (المدخل القياسي الرقمي):</span>
-                    <p className="text-[10px] text-slate-355 italic leading-relaxed">
-                      النتيجة الإجمالية للمقياس: <strong className="text-teal-450 text-teal-400 font-bold">{finalReportResult?.totalScore || 0} نقاط</strong> — تصنيف العوارض: <strong className="text-red-400">[{finalReportResult?.severity || "خفيف"}]</strong>.
+                    <p className="text-[10px] text-slate-300 italic leading-relaxed">
+                      النتيجة الإجمالية للمقياس: <strong className="text-teal-400 font-bold">{finalReportResult?.totalScore || 0} نقاط</strong> — تصنيف العوارض: <strong className="text-red-400">[{finalReportResult?.severity || "خفيف"}]</strong>.
                     </p>
                     <span className="text-[9px] text-slate-500 block pt-1 border-t border-slate-900/50">مطابقة الفحص سيكومترياً لتوجيه خوارزمية السكينة CBT</span>
                   </div>
                 </div>
               </div>
 
-                {/* 🛡️ CLINICAL REPORT PREVIEW MODAL */}
-                {activeReportModalData && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in text-right">
-                    <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto flex flex-col justify-between shadow-2xl animate-scale-up">
+              {/* 🛡️ CLINICAL REPORT PREVIEW MODAL */}
+              {activeReportModalData && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in text-right font-sans">
+                  <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto flex flex-col justify-between shadow-2xl animate-scale-up">
+                    
+                    {/* Modal Header */}
+                    <div className="flex justify-between items-center bg-slate-950 p-5 border-b border-slate-850 sticky top-0 z-10">
+                      <button
+                        type="button"
+                        onClick={() => setActiveReportModalData(null)}
+                        className="p-2 bg-slate-900 hover:bg-slate-850 hover:text-white rounded-xl text-slate-400 transition cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
                       
-                      {/* Modal Header */}
-                      <div className="flex justify-between items-center bg-slate-950 p-5 border-b border-slate-850 sticky top-0 z-10">
-                        <button
-                          type="button"
-                          onClick={() => setActiveReportModalData(null)}
-                          className="p-2 bg-slate-900 hover:bg-slate-850 hover:text-white rounded-xl text-slate-400 transition cursor-pointer"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                        
-                        <div className="text-right flex items-center gap-2">
-                          <ShieldCheck className="w-5 h-5 text-teal-400" />
-                          <h4 className="text-sm font-black text-slate-100">
-                            {activeReportModalData.type === "initial" ? "التقرير الطبي والتشخيصي السريري الأولي" : `تفاصيل تقييم المتابعة الدورية عيادياً`}
-                          </h4>
+                      <div className="text-right flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5 text-teal-400" />
+                        <h4 className="text-sm font-black text-slate-100">
+                          {activeReportModalData.type === "initial" ? "التقرير الطبي والتشخيصي السريري الأولي" : `تفاصيل تقييم المتابعة الدورية عيادياً`}
+                        </h4>
+                      </div>
+                    </div>
+
+                    {/* Modal Body / Report Document */}
+                    <div className="p-6 md:p-8 space-y-6 text-slate-350 select-text leading-loose">
+                      
+                      {/* Clinical Letterhead */}
+                      <div className="text-center border-b-2 border-dashed border-teal-850 pb-5 space-y-2">
+                        <h3 className="text-base font-black text-slate-100">منصة وعيادة سكينة لدعم الاستقرار السلوكي الرقمي</h3>
+                        <p className="text-[10px] text-teal-400 font-bold">تقرير إكلينيكي معتمد إلكترونياً ومشفر طبقاً لمعايير HIPAA للخصوصية السريرية</p>
+                        <div className="mx-auto w-max px-3 py-1 bg-teal-950 text-teal-400 border border-teal-900 rounded-full text-[9px] font-bold">
+                          رقم الفحص الموحد للحساب: {authInput}
                         </div>
                       </div>
 
-                      {/* Modal Body / Report Document */}
-                      <div className="p-6 md:p-8 space-y-6 text-slate-350 select-text leading-loose">
+                      {/* Patient & Subject Demographics details */}
+                      <div className="bg-slate-950/65 p-4 rounded-2xl border border-slate-900 space-y-2 text-xs">
+                        <h5 className="font-bold text-slate-200 text-xs border-b border-slate-900/50 pb-1.5 flex items-center gap-1.5 justify-end">
+                          <User className="w-4 h-4 text-teal-400" />
+                          الملف السريري والبيانات الديموغرافية للمراجع
+                        </h5>
                         
-                        {/* Clinical Letterhead */}
-                        <div className="text-center border-b-2 border-dashed border-teal-850 pb-5 space-y-2">
-                          <h3 className="text-base font-black text-slate-100">منصة وعيادة سكينة لدعم الاستقرار السلوكي الرقمي</h3>
-                          <p className="text-[10px] text-teal-400 font-bold">تقرير إكلينيكي معتمد إلكترونياً ومشفر طبقاً لمعايير HIPAA للخصوصية السريرية</p>
-                          <div className="mx-auto w-max px-3 py-1 bg-teal-950 text-teal-400 border border-teal-900 rounded-full text-[9px] font-bold">
-                            رقم الفحص الموحد للحساب: {authInput}
-                          </div>
-                        </div>
-
-                        {/* Patient & Subject Demographics details */}
-                        <div className="bg-slate-950/65 p-4 rounded-2xl border border-slate-900 space-y-2 text-xs">
-                          <h5 className="font-bold text-slate-200 text-xs border-b border-slate-900/50 pb-1.5 flex items-center gap-1.5 justify-end">
-                            <User className="w-4 h-4 text-teal-400" />
-                            الملف السريري والبيانات الديموغرافية للمراجع
-                          </h5>
-                          
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[11px] text-slate-300">
-                            <div>الاسم المقيد: <span className="text-slate-100 font-bold">{demographics.name || "سكينة"}</span></div>
-                            <div>العمر الفعلي: <span className="text-slate-100 font-bold">{demographics.age || "لم يجر بعد"} سنة</span></div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-[11px] text-slate-300">
+                          <div>الاسم المقيد: <span className="text-slate-100 font-bold">{demographics.name || "سكينة"}</span></div>
+                          <div>العمر الفعلي: <span className="text-slate-100 font-bold">{demographics.age || "لم يجر بعد"} سنة</span></div>
                             <div>الجنس: <span className="text-slate-100 font-bold">{demographics.gender === "Male" ? "ذكر" : "أنثى"}</span></div>
                             <div>الحالة الاجتماعية: <span className="text-slate-100 font-bold">{demographics.marital === "Single" ? "أعزب" : "متزوج/آخر"}</span></div>
                             <div>المسمى المهني: <span className="text-slate-100 font-bold">{demographics.job || "لا يوجـد"}</span></div>
