@@ -97,6 +97,17 @@ export function IntegratedClinicalJourney() {
   // 📝 Step 2: Current Complaint (Text Input)
   const [complaintText, setComplaintText] = useState("");
 
+  const isDirtyRef = useRef(false);
+
+  // Monitor user typing to set isDirtyRef.current to true so syncSession won't overwrite current edits
+  useEffect(() => {
+    const activeEl = document.activeElement;
+    const isTyping = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
+    if (isTyping && isAuthenticated) {
+      isDirtyRef.current = true;
+    }
+  }, [demographics, clinicalHistory, complaintText, isAuthenticated]);
+
   // 📝 Step 3: Primary Triage AI Analysis
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState("");
@@ -164,6 +175,7 @@ export function IntegratedClinicalJourney() {
           patientNotes
         };
         localStorage.setItem(`sakeenah_patient_${authInput.trim().toLowerCase()}`, JSON.stringify(payload));
+        isDirtyRef.current = false;
         window.dispatchEvent(new CustomEvent("sakeenah_patient_updated", { detail: { sender: "ClinicalJourney" } }));
       } catch (e) {
         console.error("Error saving patient session", e);
@@ -240,9 +252,11 @@ export function IntegratedClinicalJourney() {
           const raw = localStorage.getItem(`sakeenah_patient_${loggedInUser.trim().toLowerCase()}`);
           if (raw) {
             const data = JSON.parse(raw);
-            if (data.demographics) setDemographics(prev => JSON.stringify(prev) === JSON.stringify(data.demographics) ? prev : data.demographics);
-            if (data.clinicalHistory) setClinicalHistory(prev => JSON.stringify(prev) === JSON.stringify(data.clinicalHistory) ? prev : data.clinicalHistory);
-            if (data.complaintText !== undefined) setComplaintText(prev => prev === data.complaintText ? prev : data.complaintText);
+            if (!isDirtyRef.current) {
+              if (data.demographics) setDemographics(prev => JSON.stringify(prev) === JSON.stringify(data.demographics) ? prev : data.demographics);
+              if (data.clinicalHistory) setClinicalHistory(prev => JSON.stringify(prev) === JSON.stringify(data.clinicalHistory) ? prev : data.clinicalHistory);
+              if (data.complaintText !== undefined) setComplaintText(prev => prev === data.complaintText ? prev : data.complaintText);
+            }
             if (data.clinicalReport !== undefined) setClinicalReport(prev => JSON.stringify(prev) === JSON.stringify(data.clinicalReport) ? prev : data.clinicalReport);
             if (data.assignedTestId) setAssignedTestId(prev => prev === data.assignedTestId ? prev : data.assignedTestId);
             if (data.testAnswers) setTestAnswers(prev => JSON.stringify(prev) === JSON.stringify(data.testAnswers) ? prev : data.testAnswers);
