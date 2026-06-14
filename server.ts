@@ -82,23 +82,20 @@ app.post("/api/gemini/analyze", async (req: express.Request, res: express.Respon
 
     const clinicianSystemInstruction = `
       You are an elite clinical psychiatrist and expert in psychometrics, CBT, DBT, ACT therapies, and digital mental health.
-      Your core mission is to analyze diagnostic questionnaires (PHQ-9, GAD-7, DASS-21, etc.), demographics, current medications, text complaints, and family history.
+      Your core mission is to analyze diagnostic questionnaires, demographics, current medications, text complaints, and family history.
       You must produce a structured, professional clinical psychiatric triage report following the strict JSON schema provided.
 
       CRITICAL CLINICAL DIRECTIVES:
-      1. VERBATIM SPEECH & CHAT STORY INTEGRITY: You MUST analyze the patient's verbatim complaint or doctor conversation exactly as recorded without adding, omitting, or ignoring any words or claims. You are strictly forbidden from altering or fabricating symptoms or diagnostic syndromes that were not spoken or written by the patient. Keep all diagnoses and symptoms extremely truthful and closely aligned with the exact speech.
-      2. SELF-HARM / SUICIDE ALERT (Early Warning System): If the questionnaire scores or complaint text show direct or indirect indicators of suicidal ideation, self-harm, or severe psychosis, you MUST set isEmergency = true, riskLevel = "Critical", and include emergency hotlines.
-      3. COMPREHENSIVE CBT/ACT PLAN: Design deep, highly actionable exercises inside the JSON.
-      4. CITATIONS & PRINCIPLES: Base everything on World Health Organization (WHO) mhGAP guidelines, American Psychiatric Association (APA) DSM-5-TR, and ICD-11.
-      5. BILINGUAL LANGUAGE MANDATE: Provide all clinical summaries, primary symptoms, suspected conditions, cbtPlan steps, actPlan exercises, and therapist recommendations in BOTH Arabic and English.
-         - For list entries (primarySymptoms, suspectedConditions, cbtPlan, actPlan), use this exact format: "Arabic clinical text / English psychiatric translation" (e.g. "الأرق العضوي الفكري / Latency-Onset Insomnia and Sleep Fragmentation").
+      1. COMPLAINT LINGUISTIC SEVERITY ANALYSIS: Logically analyze the patient's written description of their complaint. Assess the linguistic meaning, nuanced intensity, and symptoms described to determine the severity (mild, moderate, or severe) and mood indicators. Commit to logic and correct medical thinking.
+      2. DIRECT DOCTOR VOICE: When writing the clinical summary (summaryArabic), act as an empathetic, objective, and logical doctor explaining the initial condition directly to the patient. Avoid redundant filler/clutter and keep it focused and concise. Do NOT refer to 'verbal' or 'oral' recordings as there is no voice-recording feature on the platform; refer strictly to the written complaint.
+      3. CLINICALLY PRECISE SYMPTOMS: In the symptoms list (primarySymptoms) and clinical evidence list (supportingSymptomsArabic), write direct, accurate, and professional psychiatric terminology without repeating, reciting, or retrieving the patient's verbatim text or complaint.
+      4. SELF-HARM / SUICIDE ALERT (Early Warning System): If the questionnaire scores or complaint text show indicators of suicidal ideation or self-harm, set isEmergency = true, riskLevel = "Critical", and include emergency hotlines.
+      5. COMPREHENSIVE CBT/ACT PLAN: Design deep, highly actionable exercises inside the JSON.
+      6. CITATIONS & PRINCIPLES: Base everything on World Health Organization (WHO) mhGAP guidelines, APA DSM-5-TR, and ICD-11.
+      7. BILINGUAL LANGUAGE MANDATE: Provide all clinical summaries, primary symptoms, suspected conditions, cbtPlan steps, actPlan exercises, and therapist recommendations in BOTH Arabic and English.
+         - For list entries (primarySymptoms, suspectedConditions, cbtPlan, actPlan), use this exact format: "Arabic clinical text / English psychiatric translation".
          - For long paragraphs (like summaryArabic), write a detailed clinical paragraph in professional Arabic and then follow it directly inside the same string with a highly detailed, scholarly psychiatric explanation paragraph in English.
-         - Ensure excellent scientific accuracy without exaggeration to support clinical triangulation.
-      6. NO PREMATURE METRIC COMPARISONS:
-         At this initial triage/assessment stage, standard numerical tests (PHQ-9, GAD-7, PSS-10) have NOT yet been answered by the patient. 
-         Do NOT mention, assume, or compare any score discrepancies or results of standardized scales with the chief complaint, because the test has not been performed yet. 
-         Focus purely on the semantic qualitative analysis of the chief complaint itself.
-         يُحظر تماماً الإشارة إلى وجود أي تعارض أو تطابق أو تباين بين الشكوى والمقاييس الرقمية في هذا التقرير الأولي، نظراً لأنه لم يتم إجراء المقاييس الرقمية حتى هذه اللحظة. يجب أن تتم هذه المقارنة حصراً في مراحل لاحقة بعد إجراء الاختبار النفسي الموصى به.
+      8. NO PREMATURE METRIC COMPARISONS BEFORE TESTING: At this stage, standard numerical tests have not been taken. Focus purely on semantic qualitative analysis of the chief complaint.
     `;
 
     const userPrompt = `
@@ -303,10 +300,10 @@ app.post("/api/gemini/transcribe", async (req: express.Request, res: express.Res
           properties: {
             transcript: { 
               type: Type.STRING, 
-              description: "التفريغ النصي الحرفي الدقيق والكامل بنسبة 100% وبدون تغيير لأي كلمة نطق بها المريض باللغة العربية أو اللهجة العامية التي تحدث بها، دون صياغة أو تلخيص أو تعديل / The exact verbatim spoken transcript in Arabic with 100% accuracy in the original Arabic dialect spoken by the user, without editing, summarizing, correcting, or translating." 
+              description: "التفريغ النصي الدقيق والكامل بنسبة 100% وبدون تغيير لأي كلمة كتبها المريض باللغة العربية أو اللهجة العامية التي تحدث بها، دون صياغة أو تلخيص أو تعديل / The exact verbatim written transcript in Arabic with 100% accuracy, without editing, summarizing, correcting, or translating." 
             },
             detectedEmotions: { type: Type.ARRAY, items: { type: Type.STRING }, description: "المشاعر المكتشفة مثل الحزن، القلق، التوتر، الخوف / Recognized emotional states" },
-            extractedSymptoms: { type: Type.ARRAY, items: { type: Type.STRING }, description: "الأعراض النفسية الموصوفة شفهياً من المريض / Psychological symptoms described" },
+            extractedSymptoms: { type: Type.ARRAY, items: { type: Type.STRING }, description: "الأعراض النفسية الموصوفة في النص من المريض / Psychological symptoms described" },
             anxietyScore: { type: Type.NUMBER, description: "درجة القلق من 0 إلى 100 / Score from 0 to 100" },
             tensionLevel: { type: Type.STRING, description: "مستوى التوتر الملحوظ بالصوت / Tension descriptor in Arabic" }
           },
@@ -544,6 +541,11 @@ function getMockClinicalReport(complaintText: string, questionnaires: any) {
 
   const isEmergency = textCheck.includes("انتحار") || textCheck.includes("suicide") || textCheck.includes("أقتل") || textCheck.includes("harm") || textCheck.includes("أنهي حياتي");
 
+  // Logical evaluation of written complaint linguistic severity
+  const isSevere = textCheck.includes("شديد") || textCheck.includes("حاد") || textCheck.includes("جداً") || textCheck.includes("انهيار") || textCheck.includes("عنيف") || textCheck.includes("مستمر") || textCheck.includes("دائماً") || textCheck.includes("صرخ") || textCheck.includes("لا أتحمل");
+  const isMild = textCheck.includes("خفيف") || textCheck.includes("بسيط") || textCheck.includes("أحياناً") || textCheck.includes("مؤقت") || textCheck.includes("قليلاً") || textCheck.includes("نادر") || textCheck.includes("أوقات");
+  const severityWord = isSevere ? "مرتفعة الشدة" : (isMild ? "خفيفة إلى مؤقتة" : "معتدلة الشدة");
+
   // Dynamic Symptom & Condition Matcher to prevent arbitrary hallucinated categories!
   let symptoms: string[] = [];
   let conditions: string[] = [];
@@ -587,11 +589,11 @@ function getMockClinicalReport(complaintText: string, questionnaires: any) {
     conditions.push("تذبذب في علاقة الغذاء بالتوتر النفسي / Eating Disturbance Spectrum");
   }
 
-  // Fallback default symptoms if none of the above are matched, so we never leave it blank or default to unrelated templates!
+  // Fallback default symptoms if none of the above are matched
   if (symptoms.length === 0) {
     symptoms = [
-      `أعراض القلق والتوتر كما نطقت بها شفهياً: "${displayText.slice(0, 70)}..."`,
-      "استجابة وجدانية حية للتحديات السلوكية الحالية / General Psychological Distress Response"
+      "أعراض قلق وتوتر نفسي عام مصاحب للضغوط اليومية / General Psychological Strain and Anxiety",
+      "أرق وصعوبات طفيفة في الاسترخاء الذهني والبدني / Mild Sleep and Relaxation Difficulties"
     ];
     conditions = [
       "حالة قلق نفسي وتوتر عام غير محدد / Unspecified General Psychological Strain",
@@ -599,13 +601,13 @@ function getMockClinicalReport(complaintText: string, questionnaires: any) {
     ];
   }
 
-  // Create a 100% accurate verbatim summary
-  summary = `التقرير الطبي التقييمي الأولي يطابق تفاصيل شكواكم الشفهية المسجلة بدقة مائة بالمائة وبلا أي تغيير أو صياغة إضافية خارج دائرتك التوجيهية: "${displayText}". يشير التحليل السريري المباشر للأعراض المستلمة إلى رصد دقيق لـ (${symptoms.map(s => s.split(" / ")[0]).join("، ")})، بما يعكس شكوتك بأمانة تامة وبدون أي هلوسة أو تلفيق لتشخيصات عشوائية.`;
+  // Act as a doctor explaining the initial condition directly to the patient logically and objectively
+  summary = `بصفتي طبيبك المعالج المعني بدراسة حالتك المبدئية؛ قمت بدراسة شكواك المكتوبة بدقة وفحص الأعراض التي وصفتها بشكل موضوعي ومنطقي. تشير الدلالات اللغوية وعناصر الشدة في كلامك إلى وجود أعراض قلق بحدّة يغلب عليها طابع (${severityWord}). إن هذه الوعكة المعبر عنها هي استجابة مفهومة للضغوط، وسنتعامل معها خطوة بخطوة عبر خطة التعافي السلوكية والتمارين المقترحة لإعادة بناء السكينة العاطفية والجسدية بشكل مستقر تماماً.`;
 
   therapist = "أخصائي نفسي إكلينيكي مرخص ممارس للعلاج المعرفي السلوكي (CBT) وعلاج القبول والالتزام (ACT) المتكامل للتوجيه والضبط السلوكي المباشر.";
 
   cognitiveHomework = [
-    `تفكيك الفكرة التلقائية المسببة للتعب بحديثك الصادق: ("${displayText.slice(0, 60)}...") وإدراك منبعها السيكولوجي السلوكي.`,
+    "تحديد وتفكيك الفكرة التلقائية المسببة للعناء النفسي وإدراك منبعها السلوكي والمعرفي.",
     "مراقبة الأفكار الساخنة السلبية وتدوينها لتقليل أثرها على الجسد فور تصاعد التوتر العصبي أو الذهني.",
     "تحديد التشوهات المعرفية (مثل التهويل والتعميم الكارثي للأحداث) وإحلال فكر معتدل ومحايد يراعي الواقع الحسي."
   ];
@@ -622,9 +624,9 @@ function getMockClinicalReport(complaintText: string, questionnaires: any) {
   ];
 
   mindfulnessEx = [
-    `الفصل المعرفي الإيجابي: قل لنفسك "عقلي يمرر فكرة صعبة الآن، لكنني كفرد مستقل آمن ومنفصل ومستقر تماماً في فلك الحاضر".`,
+    "الفصل المعرفي الإيجابي: قل لنفسك \"عقلي يمرر فكرة صعبة الآن، لكنني كفرد مستقل آمن ومنفصل ومستقر تماماً في فلك الحاضر\".",
     "القبول غير المشروط لأمواج التوتر بوسط الصدر دقيقة بدقيقة دون الدخول في صراع داخلي هجومي يعاظم استثارتك البدنية.",
-    "تمرين الإرساء الحسي الخماسي (5-4-3-2-1) لإعادة تثبيت حواسك في الواقع الحقيقي الآمن من حولك حالاً."
+    "تمرة الإرساء الحسي الخماسي (5-4-3-2-1) لإعادة تثبيت حواسك في الواقع الحقيقي الآمن من حولك حالاً."
   ];
 
   valuesEx = [
@@ -634,7 +636,7 @@ function getMockClinicalReport(complaintText: string, questionnaires: any) {
 
   return {
     isEmergency: isEmergency,
-    riskLevel: isEmergency ? "Critical" : "Moderate",
+    riskLevel: isEmergency ? "Critical" : (isSevere ? "High" : "Moderate"),
     primarySymptoms: symptoms,
     suspectedConditions: conditions,
     confidence: 95,

@@ -735,8 +735,8 @@ export function IntegratedClinicalJourney() {
 
     if (symptoms.length === 0) {
       symptoms = [
-        `أعراض القلق والتوتر كما نطقت بها شفهياً: "${displayText.slice(0, 70)}..."`,
-        "استجابة وجدانية حية للتحديات السلوكية الحالية / General Psychological Distress Response"
+        "أعراض قلق وتوتر نفسي عام مصاحب للضغوط اليومية / General Psychological Strain and Anxiety",
+        "أرق وصعوبات طفيفة في الاسترخاء الذهني والبدني / Mild Sleep and Relaxation Difficulties"
       ];
       conditions = [
         "حالة قلق نفسي وتوتر عام غير محدد / Unspecified General Psychological Strain",
@@ -744,11 +744,15 @@ export function IntegratedClinicalJourney() {
       ];
     }
 
-    const summary = `التقرير الطبي التقييمي الأولي يطابق تفاصيل شكواكم الشفهية المسجلة بدقة مائة بالمائة وبلا أي تغيير أو صياغة إضافية خارج دائرتك التوجيهية: "${displayText}". يشير التحليل السريري المباشر للأعراض المستلمة إلى رصد دقيق لـ (${symptoms.map(s => s.split(" / ")[0]).join("، ")})، بما يعكس شكوتك بأمانة تامة وبدون أي هلوسة أو تلفيق لتشخيصات عشوائية.`;
+    const isSevere = textCheck.includes("شديد") || textCheck.includes("حاد") || textCheck.includes("جداً") || textCheck.includes("انهيار") || textCheck.includes("عنيف") || textCheck.includes("مستمر") || textCheck.includes("دائماً") || textCheck.includes("صرخ") || textCheck.includes("لا أتحمل");
+    const isMild = textCheck.includes("خفيف") || textCheck.includes("بسيط") || textCheck.includes("أحياناً") || textCheck.includes("مؤقت") || textCheck.includes("قليلاً") || textCheck.includes("نادر") || textCheck.includes("أوقات");
+    const severityWord = isSevere ? "مرتفعة الشدة" : (isMild ? "خفيفة إلى مؤقتة" : "معتدلة الشدة");
+
+    const summary = `بصفتي طبيبك المعالج المعني بدراسة حالتك المبدئية؛ قمت بدراسة شكواك المكتوبة بدقة وفحص الأعراض التي وصفتها بشكل موضوعي ومنطقي. تشير الدلالات اللغوية وعناصر الشدة في كلامك إلى وجود أعراض قلق بحدّة يغلب عليها طابع (${severityWord}). إن هذه الوعكة المعبر عنها هي استجابة مفهومة للضغوط، وسنتعامل معها خطوة بخطوة عبر خطة التعافي السلوكية والتمارين المقترحة لإعادة بناء السكينة العاطفية والجسدية بشكل مستقر تماماً.`;
     const therapist = "أخصائي نفسي إكلينيكي مرخص ممارس للعلاج المعرفي السلوكي (CBT) وعلاج القبول والالتزام (ACT) المتكامل للتوجيه والضبط السلوكي المباشر.";
 
     const cognitiveHomework = [
-      `تفكيك الفكرة التلقائية المسببة للتعب بحديثك الصادق: ("${displayText.slice(0, 60)}...") وإدراك منبعها السيكولوجي السلوكي.`,
+      "تحديد وتفكيك الفكرة التلقائية المسببة للعناء النفسي وإدراك منبعها السلوكي والمعرفي.",
       "مراقبة الأفكار الساخنة السلبية وتدوينها لتقليل أثرها على الجسد فور تصاعد التوتر العصبي أو الذهني.",
       "تحديد التشوهات المعرفية (مثل التهويل والتعميم الكارثي للأحداث) وإحلال فكر معتدل ومحايد يراعي الواقع الحسي."
     ];
@@ -805,7 +809,7 @@ export function IntegratedClinicalJourney() {
   const handleAnalyzeComplaint = async (textToAnalyze?: string) => {
     const rawText = typeof textToAnalyze === "string" ? textToAnalyze : complaintText;
     if (!rawText.trim()) {
-      alert("يرجى كتابة شكواك بالتفصيل أو استخدام الميكروفون للوصف الصوتي.");
+      alert("يرجى كتابة شكواك بالتفصيل في صندوق الوصف.");
       return;
     }
     setIsAnalyzing(true);
@@ -944,19 +948,19 @@ export function IntegratedClinicalJourney() {
       if (interpretation.severity === "low") {
         clinicalReport.riskLevel = "Low";
         clinicalReport.isEmergency = false;
-        clinicalReport.summaryArabic = `بناءً على نتائج المقياس النفسي القياسي المحرز وهو مقياس ${test.nameArabic}، أظهر التقييم غياب المحاذير الإكلينيكية الحادة أو رغبات الإيذاء الذاتي؛ حيث تم تدوين نسبة تقييم في النطاق السليم المنبثق (${interpretation.levelArabic}) بـ ${score} نقاط متطابقة تماماً ومتسقة مع الشكوى اللفظية للمريض.`;
+        clinicalReport.summaryArabic = `بناءً على نتائج المقياس النفسي القياسي المحرز وهو مقياس ${test.nameArabic}، أظهر التقييم غياب المحاذير الإكلينيكية الحادة أو رغبات الإيذاء الذاتي؛ حيث تم تدوين نسبة تقييم في النطاق السليم المنبثق (${interpretation.levelArabic}) بـ ${score} نقاط متطابقة تماماً ومتسقة مع الشكوى المكتوبة للمريض.`;
       } else if (interpretation.severity === "medium") {
         clinicalReport.riskLevel = "Moderate";
         clinicalReport.isEmergency = false;
-        clinicalReport.summaryArabic = `بناءً على فحص المعيار السيكومتري الاستدلالي لمقياس ${test.nameArabic} وحصيلته البالغة ${score} نقاط، يقع التشخيص في نطاق الدرجة المعتدلة أو الخفيفة الشدة (${interpretation.levelArabic}). يوضح this التوافق الإيجابي صواب التدابير السلوكية وجدول الأيام المدون دون حاجة حتمية لعقاقير كيميائية قوية.`;
+        clinicalReport.summaryArabic = `بناءً على فحص المعيار السيكومتري الاستدلالي لمقياس ${test.nameArabic} وحصيلته البالغة ${score} نقاط، يقع التشخيص في نطاق الدرجة المعتدلة أو الخفيفة الشدة (${interpretation.levelArabic}). يوضح هذا التوافق الإيجابي صواب التدابير السلوكية وجدول الأيام المدون دون حاجة حتمية لعقاقير كيميائية قوية.`;
       } else if (interpretation.severity === "high") {
         clinicalReport.riskLevel = "High";
         clinicalReport.isEmergency = false;
-        clinicalReport.summaryArabic = `بناءً على نتيجة المقياس النفسي المعتمد بـ ${score} نقاط، تم رصد مستوى مرتفع الشدة والوضوح (${interpretation.levelArabic}) بمطابقة وتوافق طردي متناسق بنسبة %100 مع شكوى المريض اللفظية والوصف الصوتي للوعكة، مما يستوجب النظر السريع في الدعم الدوائي المساعد وبروتوكولات CBT.`;
+        clinicalReport.summaryArabic = `بناءً على نتيجة المقياس النفسي المعتمد بـ ${score} نقاط، تم رصد مستوى مرتفع الشدة والوضوح (${interpretation.levelArabic}) بمطابقة وتوافق طردي متناسق بنسبة %100 مع شكوى المريض المكتوبة والتعبير المنظم للوعكة، مما يستوجب النظر السريع في الدعم الدوائي المساعد وبروتوكولات CBT.`;
       } else if (interpretation.severity === "critical") {
         clinicalReport.riskLevel = "Critical";
         clinicalReport.isEmergency = true;
-        clinicalReport.summaryArabic = `تم تدوين فحص سريري حرج جداً على مقياس ${test.nameArabic} بـ ${score} نقاط في النطاق الشديد حرج الأهمية (${interpretation.levelArabic}). هذا التشخيص يتناغم تماماً مع حجم العناء الموصوف لفظياً، وتستدعي الحالة تدخلاً علاجياً دوائياً عاجلاً وجلسات إكلينيكية متخصصة مكثفة.`;
+        clinicalReport.summaryArabic = `تم تدوين فحص سريري حرج جداً على مقياس ${test.nameArabic} بـ ${score} نقاط في النطاق الشديد حرج الأهمية (${interpretation.levelArabic}). هذا التشخيص يتناغم تماماً مع حجم العناء المكتوب في نص الشكوى، وتستدعي الحالة تدخلاً علاجياً دوائياً عاجلاً وجلسات إكلينيكية متخصصة مكثفة.`;
       }
     }
 
@@ -1423,7 +1427,7 @@ export function IntegratedClinicalJourney() {
           <div class="meta-item"><span class="meta-label">المقياس الأول الأساسي:</span> ${finalReportResult?.testName || "مقياس العيادة النفسية"}</div>
           <div class="meta-item"><span class="meta-label">الدرجة الإجمالية المحرزة:</span> ${baselineScoreText}</div>
           <div class="meta-item"><span class="meta-label">مستوى شدة الحالة الأولي:</span> ${finalReportResult?.severity || "خفيف"}</div>
-          <div class="meta-item"><span class="meta-label">مذكرة التوافق والاتساق السريري:</span> ${finalReportResult?.totalScore >= 15 ? 'تطابق طردي يتناسب مع عمق وشكوى المريض' : 'اتساق للأعراض اللفظية مع الفحص المعتدل الرقمي'}</div>
+          <div class="meta-item"><span class="meta-label">مذكرة التوافق والاتساق السريري:</span> ${finalReportResult?.totalScore >= 15 ? 'تطابق طردي يتناسب مع عمق وشكوى المريض' : 'اتساق للأعراض المكتوبة مع الفحص المعتدل الرقمي'}</div>
         </div>
 
         <div class="section-title">مذكرات وتقييمات المراجعات الدورية كل أسبوعين (تراكمية التاريخ)</div>
@@ -1587,7 +1591,7 @@ export function IntegratedClinicalJourney() {
               <span class="meta-label">تصنيف القلق وإدارة الأخطار:</span> 
               <span class="badge ${clinicalReport?.riskLevel === "Low" || clinicalReport?.riskLevel === "Moderate" ? "badge-success" : ""}">${clinicalReport?.riskLevel || "Moderate"}</span>
             </div>
-            <div><span class="meta-label">الأعراض المرصودة لغوياً وصوتياً:</span> ${clinicalReport?.primarySymptoms?.join(" ، ") || "لا توجد أعراض صريحة"}</div>
+            <div><span class="meta-label">الأعراض المرصودة لغوياً وموضوعياً:</span> ${clinicalReport?.primarySymptoms?.join(" ، ") || "لا توجد أعراض صريحة"}</div>
           </div>
         </div>
 
@@ -1614,7 +1618,7 @@ export function IntegratedClinicalJourney() {
           <div style="margin-bottom: 12px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
             <strong style="color: #0d9488; font-size: 13px; display: block; margin-bottom: 5px;">1. التحليل الديناميكي للأعراض والدافع السلوكي:</strong>
             <p style="font-size: 12px; color: #475569; margin: 0; padding-right: 10px; border-right: 3px solid #0d9488; text-align: justify;">
-              بناءً على الشكوى النصية أو الصوتية المدونة طائعةً من طرفكم والتحليل الإكلينيكي المدمج، تم رصد مؤشرات واضحة لفرط اليقظة والاجترار العاطفي. تشير هذه الأعراض إلى حالة نشطة من التصلب الإدراكي حيث يعيد العقل تدوير الأفكار المقلقة والذكريات المنهكة دون الوصول لمرحلة التكيف أو اتخاذ حلول بناءة. هذا النمط يؤثر مباشرة على كفاءة المراكز الفكرية والقرار، ويتجسد في صورة ضيق جسدي واضطرابات في دورات وساعات النوم العادية (الأرق السلوكي).
+              بناءً على الشكوى المكتوبة المدونة طائعةً من طرفكم والتحليل الإكلينيكي المدمج، تم رصد مؤشرات واضحة لفرط اليقظة والاجترار العاطفي. تشير هذه الأعراض إلى حالة نشطة من التصلب الإدراكي حيث يعيد العقل تدوير الأفكار المقلقة والذكريات المنهكة دون الوصول لمرحلة التكيف أو اتخاذ حلول بناءة. هذا النمط يؤثر مباشرة على كفاءة المراكز الفكرية والقرار، ويتجسد في صورة ضيق جسدي واضطرابات في دورات وساعات النوم العادية (الأرق السلوكي).
             </p>
           </div>
 
@@ -2855,7 +2859,7 @@ export function IntegratedClinicalJourney() {
                                   <span className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
                                 </h6>
                                 <p className="text-slate-400 text-[10.5px] text-right">
-                                  لا يعمل الفحص بمعزل عن وعكتك؛ بل يقارن ذكاء العيادة بين شدة الكلمات وصياغتها اللفظية بالمرحلة الثانية لضمان توافق الاتساق السريري:
+                                  لا يعمل الفحص بمعزل عن وعكتك؛ بل يقارن ذكاء العيادة بين شدة الكلمات وصياغتها المكتوبة بالمرحلة الثانية لضمان توافق الاتساق السريري:
                                 </p>
                               </div>
 
@@ -3092,7 +3096,7 @@ export function IntegratedClinicalJourney() {
                   <div className="space-y-1">
                     <strong className="text-teal-400 font-bold block">1. التحليل الديناميكي للأعراض والدافع السلوكي:</strong>
                     <p className="pr-2 border-r border-slate-800 text-slate-400 leading-relaxed">
-                      بناءً على الشكوى النصية أو الصوتية المدونة طائعةً من طرفكم والتحليل الإكلينيكي المدمج، تم رصد مؤشرات واضحة لفرط اليقظة والاجترار العاطفي. تشير هذه الأعراض إلى حالة نشطة من التصلب الإدراكي حيث يعيد العقل تدوير الأفكار المقلقة والذكريات المنهكة دون الوصول لمرحلة التكيف أو اتخاذ حلول بناءة. هذا النمط يؤثر مباشرة على كفاءة المراكز الفكرية والقرار، ويتجسد في صورة ضيق جسدي واضطرابات في دورات وساعات النوم العادية (الأرق السلوكي).
+                      بناءً على الشكوى المكتوبة المدونة طائعةً من طرفكم والتحليل الإكلينيكي المدمج، تم رصد مؤشرات واضحة لفرط اليقظة والاجترار العاطفي. تشير هذه الأعراض إلى حالة نشطة من التصلب الإدراكي حيث يعيد العقل تدوير الأفكار المقلقة والذكريات المنهكة دون الوصول لمرحلة التكيف أو اتخاذ حلول بناءة. هذا النمط يؤثر مباشرة على كفاءة المراكز الفكرية والقرار، ويتجسد في صورة ضيق جسدي واضطرابات في دورات وساعات النوم العادية (الأرق السلوكي).
                     </p>
                   </div>
 
@@ -3129,9 +3133,9 @@ export function IntegratedClinicalJourney() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-900 space-y-1.5">
-                    <span className="text-[10px] text-teal-400 block font-bold">● الوصف والفضفضة اللفظية للوعكة (المدخل اللغوي):</span>
+                    <span className="text-[10px] text-teal-400 block font-bold">● الوصف والفضفضة المكتوبة للوعكة (المدخل اللغوي):</span>
                     <p className="text-[10px] text-slate-300 italic leading-relaxed">
-                      "{complaintText || "تم الفحص والفضفضة الصوتية الذكية"}"
+                      "{complaintText || "تم الفحص والفضفضة المكتوبة"}"
                     </p>
                     <span className="text-[9px] text-slate-500 block pt-1 border-t border-slate-900/50">تمت معالجة المدخل دلالياً بدقة عالية</span>
                   </div>
