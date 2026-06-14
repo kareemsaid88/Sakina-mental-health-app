@@ -2402,7 +2402,7 @@ export function IntegratedClinicalJourney() {
                               <button
                                 type="button"
                                 onClick={() => handleDeletePeriodicReport(index)}
-                                className="px-3 py-2 bg-red-950/40 hover:bg-red-950/60 text-red-400 border border-red-900/40 rounded-xl text-[10px] transition cursor-pointer flex items-center gap-1"
+                                className="px-3 py-2 bg-red-950/40 hover:bg-red-950/60 text-red-100 border border-red-900/40 rounded-xl text-[10px] transition cursor-pointer flex items-center gap-1"
                                 title="حذف هذا التقرير الدوري 🗑️"
                               >
                                 <Trash2 className="w-3 h-3" />
@@ -2677,111 +2677,16 @@ export function IntegratedClinicalJourney() {
                             </h5>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-[11px] leading-relaxed">
-                          {/* Column 1: Math Breakdown */}
-                          <div className="space-y-3 bg-slate-950/40 p-4 border border-slate-900 rounded-2xl">
-                            <h6 className="font-extrabold text-slate-200 flex items-center gap-1 justify-end">
-                              <span>1. آلية حساب الدرجات المكتسبة 🔢</span>
-                              <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />
-                            </h6>
-                            <p className="text-slate-400 text-[10.5px]">
-                              يتم احتساب قيمة المقياس تلقائياً بالاعتماد على أوزان الإجابات المعتمدة إكلينيكياً (ليكيرت):
-                            </p>
-                            <div className="bg-slate-950/90 p-3 rounded-xl border border-slate-900 space-y-1 font-mono text-[9px] text-slate-350">
-                              <div>• أبداً / لا يوجد = <span className="text-emerald-400 font-bold">0 نقطة</span></div>
-                              <div>• لعدة أيام / أحياناً = <span className="text-teal-400 font-bold">1 نقطة</span></div>
-                              <div>• أكثر من نصف الأيام / غالباً = <span className="text-purple-400 font-bold">2 نقطة</span></div>
-                              <div>• تقريباً كل يوم / دائماً جداً = <span className="text-indigo-400 font-bold">3 أو 4 نقاط</span></div>
-                            </div>
-
-                            {/* Dynamic Severity Ranges */}
-                            <div className="pt-2 border-t border-slate-900/50 space-y-1.5">
-                              <span className="text-slate-200 font-bold block text-[10px]">مستويات تصنيف ومفسرات درجات هذا المقياس:</span>
-                              <div className="bg-slate-950/70 rounded-xl p-2 border border-slate-900 space-y-1">
-                                {(() => {
-                                  let ranges: any[] = [];
-                                  if (activeTest.id === "PHQ-9") {
-                                    ranges = [
-                                      { range: "0 - 4", label: "أعراض طبيعية / طفيفة (Low)", color: "text-emerald-400", check: (s: number) => s <= 4 },
-                                      { range: "5 - 9", label: "اكتئاب خفيف (Mild)", color: "text-teal-400", check: (s: number) => s >= 5 && s <= 9 },
-                                      { range: "10 - 14", label: "اكتئاب معتدل (Moderate)", color: "text-amber-400", check: (s: number) => s >= 10 && s <= 14 },
-                                      { range: "15 - 19", label: "اكتئاب متوسط الشدة (Moderately Severe)", color: "text-orange-400", check: (s: number) => s >= 15 && s <= 19 },
-                                      { range: "20 - 27", label: "اكتئاب حاد وحَرِج (Severe Depression)", color: "text-red-400", check: (s: number) => s >= 20 },
-                                    ];
-                                  } else if (activeTest.id === "GAD-7") {
-                                    ranges = [
-                                      { range: "0 - 4", label: "قلق طبيعي / غائب (Low)", color: "text-emerald-400", check: (s: number) => s <= 4 },
-                                      { range: "5 - 9", label: "قلق خفيف (Mild)", color: "text-teal-400", check: (s: number) => s >= 5 && s <= 9 },
-                                      { range: "10 - 14", label: "قلق معتدل (Moderate)", color: "text-amber-400", check: (s: number) => s >= 10 && s <= 14 },
-                                      { range: "15 - 21", label: "قلق حاد وحَرِج (Severe Anxiety)", color: "text-red-400", check: (s: number) => s >= 15 },
-                                    ];
-                                  } else if (activeTest.id === "PSS-10") {
-                                    ranges = [
-                                      { range: "0 - 13", label: "توتر حياتي طبيعي (Low Stress)", color: "text-emerald-400", check: (s: number) => s <= 13 },
-                                      { range: "14 - 26", label: "توتر معتدل مبرر (Moderate Stress)", color: "text-amber-400", check: (s: number) => s >= 14 && s <= 26 },
-                                      { range: "27 - 40", label: "توتر حاد واحتراق نفسي (Severe Stress)", color: "text-red-400", check: (s: number) => s >= 27 },
-                                    ];
-                                  } else {
-                                    ranges = [
-                                      { range: `عتبة منخفضة`, label: "غير مؤثر إكلينيكياً", color: "text-emerald-400", check: (s: number) => s < activeTest.maxScore * 0.35 },
-                                      { range: `عتبة معتدلة`, label: "أعراض متوسطة", color: "text-amber-400", check: (s: number) => s >= activeTest.maxScore * 0.35 && s < activeTest.maxScore * 0.70 },
-                                      { range: `عتبة حادة`, label: "اضطراب حاد ونشط ومؤرق", color: "text-red-400", check: (s: number) => s >= activeTest.maxScore * 0.70 },
-                                    ];
-                                  }
-
-                                  return ranges.map((rangeItem, rIdx) => {
-                                    const isCurrentRange = rangeItem.check(currentScore);
-                                    return (
-                                      <div 
-                                        key={rIdx} 
-                                        className={`flex justify-between items-center text-[9px] py-1 px-1.5 rounded transition duration-200 ${
-                                          isCurrentRange 
-                                            ? "bg-indigo-950/80 border border-indigo-900 text-slate-100 font-extrabold shadow-sm" 
-                                            : "opacity-45 text-slate-400"
-                                        }`}
-                                      >
-                                        <span className={`font-mono font-bold ${rangeItem.color} flex items-center gap-1.5`}>
-                                          {isCurrentRange && <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-pulse" />}
-                                          <span>{rangeItem.range}</span>
-                                        </span>
-                                        <span className="text-right">{rangeItem.label}</span>
-                                      </div>
-                                    );
-                                  });
-                                })()}
-                              </div>
-                            </div>
-
-                            <div className="pt-1.5 border-t border-slate-900/50 space-y-2">
-                              <div className="flex justify-between items-center text-[10px] text-slate-400">
-                                <span>الدرجـــة الكليـــة الحاليـــة:</span>
-                                <strong className="text-indigo-400 font-semibold font-black text-xs flex items-center gap-1">
-                                  <span>{currentScore}</span>
-                                  <span className="text-[10px] font-medium text-slate-500">/</span>
-                                  <span>{activeTest.maxScore}</span>
-                                </strong>
-                              </div>
-                              <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-900 relative">
-                                <div 
-                                  className="bg-gradient-to-r from-teal-500 to-indigo-550 h-full transition-all duration-500 rounded-full" 
-                                  style={{ width: `${Math.min(100, Math.max(4, (currentScore / activeTest.maxScore) * 100))}%` }}
-                                />
-                              </div>
-                              <p className="text-[9px] text-slate-500 font-medium">
-                                * البنود المنجزة حتى الآن: ({answeredCount} / {activeTest.questions.length}) بنود مصنفة بنجاح.
-                              </p>
-                            </div>
-                          </div>
-
-                            {/* Column 2: Complaint Integration & Logical Coherence */}
-                            <div className="space-y-3 bg-slate-950/40 p-4 border border-slate-900 rounded-2xl flex flex-col justify-between">
-                              <div className="space-y-1.5">
+                          <div className="max-w-2xl mx-auto w-full text-[11px] leading-relaxed">
+                            {/* Complaint Integration & Logical Coherence */}
+                            <div className="space-y-3 bg-slate-950/40 p-5 border border-slate-900 rounded-3xl flex flex-col justify-between">
+                              <div className="space-y-1.5 flex flex-col items-end w-full">
                                 <h6 className="font-extrabold text-slate-200 flex items-center gap-1 justify-end">
-                                  <span>2. مطابقة الدرجة لشدّة وصياغة شكواك 🧬</span>
+                                  <span>مطابقة الدرجة لشدّة وصياغة شكواك 🧬</span>
                                   <span className="w-1.5 h-1.5 bg-teal-500 rounded-full" />
                                 </h6>
-                                <p className="text-slate-400 text-[10.5px]">
-                                  لا يعمل الفحص بمعزل عن وعكتك؛ بل يقارن ذكاء العيادة بين شدة الكلمات وصياغتها اللفظية بالمرحلة الثانية لضمان توافق الاتساق:
+                                <p className="text-slate-400 text-[10.5px] text-right">
+                                  لا يعمل الفحص بمعزل عن وعكتك؛ بل يقارن ذكاء العيادة بين شدة الكلمات وصياغتها اللفظية بالمرحلة الثانية لضمان توافق الاتساق السريري:
                                 </p>
                               </div>
 
@@ -2805,7 +2710,7 @@ export function IntegratedClinicalJourney() {
                                 <div className="space-y-1 text-right">
                                   {allFoundLabels.length > 0 ? (
                                     <div className="flex flex-wrap gap-1 justify-start">
-                                      <span className="text-[9px] text-slate-500 font-bold block w-full">بصمات شدة مرصودة بالفضفضة:</span>
+                                      <span className="text-[9px] text-slate-500 font-bold block w-full text-right font-sans">بصمات شدة مرصودة بالفضفضة:</span>
                                       {allFoundLabels.map((lbl, i) => (
                                         <span key={i} className="px-1.5 py-0.5 bg-slate-950 border border-slate-900/60 text-indigo-300 rounded text-[8.5px] font-medium">
                                           ✦ {lbl}
@@ -2813,7 +2718,7 @@ export function IntegratedClinicalJourney() {
                                       ))}
                                     </div>
                                   ) : (
-                                    <span className="text-[9px] text-slate-500 italic block pt-0.5">لم نلتقط بالشكوى كلمات انفعالية بالغة (بصمة كلامية هادئة).</span>
+                                    <span className="text-[9px] text-slate-500 register w-full block text-right">لم نلتقط بالشكوى كلمات انفعالية بالغة (بصمة كلامية هادئة).</span>
                                   )}
                                 </div>
                               </div>

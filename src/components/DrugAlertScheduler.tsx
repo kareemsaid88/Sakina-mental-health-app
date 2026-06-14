@@ -4,28 +4,7 @@ import { MedicationReminder } from "../types";
 import { getCustomizedMedicationsList, PSYCHIATRIC_MEDICATIONS } from "../data/medicationsData";
 
 export function DrugAlertScheduler() {
-  const [medications, setMedications] = useState<MedicationReminder[]>([
-    {
-      id: "m1",
-      nameArabic: "سيبرالكس (مضاد اكتئاب وقلق)",
-      nameEnglish: "Cipralex (Escitalopram)",
-      dosage: "10 ملغ (نصف حبة)",
-      frequency: "يومياً صباحاً",
-      timesOfDay: ["09:00"],
-      isActive: true,
-      takenToday: []
-    },
-    {
-      id: "m2",
-      nameArabic: "إندرال (منظم تسارع خفقان القلب)",
-      nameEnglish: "Inderal (Propranolol)",
-      dosage: "10 ملغ",
-      frequency: "عند الحشرة والقلق الشديد",
-      timesOfDay: ["11:00", "21:00"],
-      isActive: true,
-      takenToday: ["11:00"]
-    }
-  ]);
+  const [medications, setMedications] = useState<MedicationReminder[]>([]);
 
   const [newNameAr, setNewNameAr] = useState("");
   const [newNameEn, setNewNameEn] = useState("");
@@ -42,49 +21,69 @@ export function DrugAlertScheduler() {
   useEffect(() => {
     const loadMeds = () => {
       try {
-        const loggedInKey = localStorage.getItem("sakeenah_logged_in_user");
-        if (loggedInKey) {
-          setCurrentUser(loggedInKey);
-          const rawData = localStorage.getItem(`sakeenah_patient_${loggedInKey}`);
-          if (rawData) {
-            const data = JSON.parse(rawData);
-            const name = data.demographics?.name || loggedInKey;
+        const loggedInKey = localStorage.getItem("sakeenah_logged_in_user") || "guest";
+        setCurrentUser(loggedInKey);
+        
+        const rawData = localStorage.getItem(`sakeenah_patient_${loggedInKey}`);
+        const savedState = localStorage.getItem(`sakeenah_meds_${loggedInKey}`);
+
+        if (rawData) {
+          const data = JSON.parse(rawData);
+          const name = data.demographics?.name || loggedInKey;
+          
+          if (data.finalReportResult) {
+            const report = data.finalReportResult;
+            setCurrentDiagnosis(report.testName || report.testId);
+            setSuggestedMed(report.medicationPre || null);
             
-            if (data.finalReportResult) {
-              const report = data.finalReportResult;
-              setCurrentDiagnosis(report.testName || report.testId);
-              setSuggestedMed(report.medicationPre || null);
-              
-              // Customize medications list according to diagnostic testId utilizing our unified helper
-              const customizedList = getCustomizedMedicationsList(report.testId);
-              
-              if (report.testId === "PHQ-9") {
-                setCustomMsg(`عناية: تم تخصيص قائمة الأدوية المقترحة لـ (${name}) لتناسب تشخيصك بـ [${report.severity}] على مقياس الاكتئاب السريري PHQ-9.`);
-              } else if (report.testId === "GAD-7") {
-                setCustomMsg(`عناية: تم تخصيص هذا الجدول الدوائي لـ (${name}) بمطابقة مباشرة مع تشخيص القلق والهلع [${report.severity}] المقاس سريرياً بمقياس GAD-7.`);
-              } else if (report.testId === "PSS-10") {
-                setCustomMsg(`عناية: تم ضبط جرعاتك الموصى بها تلقائياً لـ (${name}) بما يتلاءم مع مؤشرات التوتر النفسي العصبي والمهني [${report.severity}] تحت معايير PSS-10.`);
-              } else {
-                setCustomMsg(`بروتوكول معياري: تم توفير جرعات افتراضية إرشادية لـ (${name}) بانتظار استكمال فحصك النفسي المعتمد بالكامل.`);
-              }
-              
-              // Check if user has updated medication state in localStorage before
-              const savedState = localStorage.getItem(`sakeenah_meds_${loggedInKey}`);
-              if (savedState) {
-                setMedications(JSON.parse(savedState));
-              } else {
-                setMedications(customizedList);
-              }
-            } else {
-              setCustomMsg(`تنبيه للملف الطبي لـ (${name}): لم تقم بإنهاء المقياس النفسي والتشخيص النهائي بعد بالمرحلة الخمسة. يمكنك المتابعة وإرسال الشكوى وتطبيق الفحص لنقوم بتهيئة الأدوية المخصصة لحالتك بدقة.`);
-              
-              const savedState = localStorage.getItem(`sakeenah_meds_${loggedInKey}`);
-              if (savedState) {
-                setMedications(JSON.parse(savedState));
-              } else {
-                setMedications([]);
-              }
+            // Build single diagnosed medication reminder list
+            let singleMedList: MedicationReminder[] = [];
+            if (report.medicationPre) {
+              singleMedList = [
+                {
+                  id: "med_linked_" + report.testId,
+                  nameArabic: `${report.medicationPre.brandNameLocal} (${report.medicationPre.categoryArabic})`,
+                  nameEnglish: `${report.medicationPre.brandNameForeign} (${report.medicationPre.genericName})`,
+                  dosage: report.medicationPre.strengths?.[0] || "10 ملغ",
+                  frequency: "يومياً أو وفق توجيهات طبيبك المختص",
+                  timesOfDay: ["21:00"],
+                  isActive: true,
+                  takenToday: []
+                }
+              ];
             }
+            
+            if (report.testId === "PHQ-9") {
+              setCustomMsg(`عناية: تم تخصيص قائمة الأدوية لمطابقة تشخيصك بـ [${report.severity}] على مقياس الاكتئاب السريري PHQ-9 وبما يتوافق تماماً مع تقرير التقييم.`);
+            } else if (report.testId === "GAD-7") {
+              setCustomMsg(`عناية: تم تخصيص هذا الجدول الدوائي بمطابقة مباشرة مع تشخيص القلق والهلع [${report.severity}] المقاس سريرياً بمقياس GAD-7.`);
+            } else if (report.testId === "PSS-10") {
+              setCustomMsg(`عناية: تم ضبط جرعاتك الموصى بها بما يتلاءم مع مؤشرات التوتر النفسي العصبي والمهني [${report.severity}] تحت معايير PSS-10.`);
+            } else {
+              setCustomMsg(`بروتوكول معياري: تم توفير جرعات افتراضية إرشادية لـ (${name}) بانتظار استكمال فحصك النفسي المعتمد بالكامل.`);
+            }
+            
+            if (savedState) {
+              setMedications(JSON.parse(savedState));
+            } else {
+              setMedications(singleMedList);
+              localStorage.setItem(`sakeenah_meds_${loggedInKey}`, JSON.stringify(singleMedList));
+            }
+          } else {
+            setCustomMsg(`تنبيه للملف الطبي لـ (${name}): لم تقم بإنهاء المقياس النفسي والتشخيص النهائي بعد بالمرحلة الرابعة. يرجى تدوين تفاصيل عنائك والقيام بالفحص لنقوم بتهيئة الأدوية المخصصة لحالتك بدقة.`);
+            
+            if (savedState) {
+              setMedications(JSON.parse(savedState));
+            } else {
+              setMedications([]);
+            }
+          }
+        } else {
+          setCustomMsg("تنبيه: يمكنك تسجيل روتينك الدوائي يدوياً من خلال الاستمارة الجانبية، أو استكمال الفرز السريري بالمرحلة الثانية والثالثة والتشخيص بالرابعة ليقترح الخوارزم الطبي المقررات تلقائياً وبدقة عالية.");
+          if (savedState) {
+            setMedications(JSON.parse(savedState));
+          } else {
+            setMedications([]);
           }
         }
       } catch (e) {
@@ -99,16 +98,6 @@ export function DrugAlertScheduler() {
       window.removeEventListener("sakeenah_patient_updated", loadMeds);
     };
   }, []);
-
-  // 💾 Automatically save medications adjustments of current user to localStorage
-  useEffect(() => {
-    if (!currentUser) return;
-    try {
-      localStorage.setItem(`sakeenah_meds_${currentUser}`, JSON.stringify(medications));
-    } catch (e) {
-      console.error("Error storing medications layout", e);
-    }
-  }, [medications, currentUser]);
 
   const handleAddMedication = (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +118,11 @@ export function DrugAlertScheduler() {
 
     const updatedMeds = [...medications, newMed];
     setMedications(updatedMeds);
+    
+    // Save to localStorage immediately to prevent race conditions with event listeners
+    const loggedInKey = localStorage.getItem("sakeenah_logged_in_user") || "guest";
+    localStorage.setItem(`sakeenah_meds_${loggedInKey}`, JSON.stringify(updatedMeds));
+    
     setNewNameAr("");
     setNewNameEn("");
     setNewDosage("");
@@ -143,25 +137,27 @@ export function DrugAlertScheduler() {
     setMedications(updatedMeds);
     
     // Notify external directory tabs to sync
-    if (currentUser) {
-      localStorage.setItem(`sakeenah_meds_${currentUser}`, JSON.stringify(updatedMeds));
-    }
+    const key = currentUser || localStorage.getItem("sakeenah_logged_in_user") || "guest";
+    localStorage.setItem(`sakeenah_meds_${key}`, JSON.stringify(updatedMeds));
     window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
   };
 
   const toggleTakeDose = (medId: string, time: string) => {
-    setMedications(
-      medications.map((m) => {
-        if (m.id === medId) {
-          const alreadyTaken = m.takenToday.includes(time);
-          const updatedTaken = alreadyTaken
-            ? m.takenToday.filter((t) => t !== time)
-            : [...m.takenToday, time];
-          return { ...m, takenToday: updatedTaken };
-        }
-        return m;
-      })
-    );
+    const updated = medications.map((m) => {
+      if (m.id === medId) {
+        const alreadyTaken = m.takenToday.includes(time);
+        const updatedTaken = alreadyTaken
+          ? m.takenToday.filter((t) => t !== time)
+          : [...m.takenToday, time];
+        return { ...m, takenToday: updatedTaken };
+      }
+      return m;
+    });
+    setMedications(updated);
+
+    const key = currentUser || localStorage.getItem("sakeenah_logged_in_user") || "guest";
+    localStorage.setItem(`sakeenah_meds_${key}`, JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
   };
 
   // Calculate global compliance index for today
@@ -236,7 +232,13 @@ export function DrugAlertScheduler() {
                   isActive: true,
                   takenToday: []
                 };
-                setMedications([...medications, newMed]);
+                const updatedMeds = [...medications, newMed];
+                setMedications(updatedMeds);
+                
+                // Write immediately to localStorage to prevent race conditions with event listeners
+                const loggedInKey = localStorage.getItem("sakeenah_logged_in_user") || "guest";
+                localStorage.setItem(`sakeenah_meds_${loggedInKey}`, JSON.stringify(updatedMeds));
+
                 window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
                 alert("تم إضافة وربط الدواء العلاجي المقترح من خطتك الطبية لقائمة أدويتك المشخصة بنجاح! 🎉");
               }}
@@ -272,6 +274,35 @@ export function DrugAlertScheduler() {
           </div>
 
           <form onSubmit={handleAddMedication} className="space-y-3.5 text-xs">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-teal-400">اختر دواءً جاهزاً من الموسوعة (الخيارات المقررة)</label>
+              <select
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (!val) return;
+                  const selected = PSYCHIATRIC_MEDICATIONS.find(m => m.id === val);
+                  if (selected) {
+                    // Extract name before slash or parenthesis
+                    const cleanAr = selected.brandNameLocal.split("(")[0].split("/")[0].trim();
+                    const cleanEn = selected.brandNameForeign.split("(")[0].trim();
+                    setNewNameAr(cleanAr);
+                    setNewNameEn(`${cleanEn} (${selected.genericName})`);
+                    setNewDosage(selected.strengths[0] || "10 ملغ");
+                    setNewFrequency("Daily");
+                    setNewTimes("09:00");
+                  }
+                }}
+                className="w-full px-3 py-2 bg-slate-900 rounded-xl text-slate-100 border border-slate-800 focus:outline-none focus:border-teal-500 cursor-pointer"
+              >
+                <option value="">-- اختر علاجاً لتلقين وتعبئة البيانات تلقائياً --</option>
+                {PSYCHIATRIC_MEDICATIONS.map((med) => (
+                  <option key={med.id} value={med.id}>
+                    {med.brandNameLocal.split("(")[0].split("/")[0].trim()} | {med.genericName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400">الاسم التجاري أو الوصف بالعربية</label>
               <input
