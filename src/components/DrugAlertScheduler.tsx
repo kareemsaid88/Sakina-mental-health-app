@@ -252,16 +252,46 @@ export function DrugAlertScheduler() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs leading-normal font-sans z-10 relative">
             <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-              <strong className="text-[10px] text-slate-450 text-slate-400 block">العلاج والاسم التجاري:</strong>
+              <strong className="text-[10px] text-slate-400 block">العلاج والاسم التجاري:</strong>
               <span className="font-extrabold text-slate-100">{suggestedMed.brandNameLocal}</span>
+              {suggestedMed.brandNameForeign && (
+                <span className="text-[9.5px] text-slate-400 block font-mono">({suggestedMed.brandNameForeign})</span>
+              )}
             </div>
             <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-              <strong className="text-[10px] text-slate-450 text-slate-400 block">المادة العلمية الفعالة:</strong>
-              <span className="font-bold text-emerald-400 font-mono text-[11px] block">{suggestedMed.genericName}</span>
+              <strong className="text-[10px] text-slate-400 block">المادة العلمية الفعالة:</strong>
+              <span className="font-bold text-emerald-400 font-mono text-[11.5px] block">{suggestedMed.genericName}</span>
             </div>
             <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-              <strong className="text-[10px] text-slate-450 text-slate-400 block">مدة العلاج المتوقعة:</strong>
-              <span className="font-extrabold text-teal-300">{suggestedMed.standardDurationArabic || "حسب رؤية الاستشاري المعالج"}</span>
+              <strong className="text-[10px] text-slate-400 block">العائلة والتصنيف السريري:</strong>
+              <span className="font-semibold text-slate-200 block">{suggestedMed.categoryArabic}</span>
+            </div>
+            <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl space-y-1">
+              <strong className="text-[10px] text-slate-400 block">التركيزات السريرية المعتمدة:</strong>
+              <span className="font-bold text-teal-300 block">{suggestedMed.strengths?.join(" / ") || "10 ملغ / 20 ملغ"}</span>
+            </div>
+            <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl space-y-1">
+              <strong className="text-[10px] text-slate-400 block">مدة العلاج للاستقرار الثنائي:</strong>
+              <span className="font-extrabold text-indigo-300 block">{suggestedMed.standardDurationArabic || "حسب رؤية الاستشاري المعالج"}</span>
+            </div>
+            <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl space-y-1">
+              <strong className="text-[10px] text-slate-400 block">مقر وبلد التصنيع المعتمد:</strong>
+              <span className="text-slate-300 font-medium block">{suggestedMed.manufacturerInfo || "منظمات الأدوية الإقليمية"}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans z-10 relative pt-2">
+            <div className="bg-slate-900/60 border border-slate-850 p-4 rounded-2xl space-y-1">
+              <span className="text-[10px] font-extrabold text-emerald-400 block">💡 المزايا والفوائد الإكلينيكية المباشرة للحالة:</span>
+              <p className="text-[10.5px] text-slate-300 leading-relaxed font-semibold">
+                {suggestedMed.advantages?.join(" ، ") || "تحسين تنظيم السيروتونين ودعم المرونة العصبية للتغلب على الأعراض السلوكية المقلقة."}
+              </p>
+            </div>
+            <div className="bg-slate-900/60 border border-slate-850 p-4 rounded-2xl space-y-1">
+              <span className="text-[10px] font-extrabold text-amber-400 block">⚠️ الآثار الجانبية وتعليمات السلامة الدوائية:</span>
+              <p className="text-[10.5px] text-amber-200/90 leading-relaxed font-semibold">
+                {suggestedMed.sideEffects?.join(" ، ") || "يوصى بعدم قطع الجرعات فجأة، قد يترافق مع بعض الأعراض الاستهلالية الخفيفة في أول أسبوع."}
+              </p>
             </div>
           </div>
         </div>

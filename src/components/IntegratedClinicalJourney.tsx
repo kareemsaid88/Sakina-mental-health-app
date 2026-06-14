@@ -1667,19 +1667,71 @@ export function IntegratedClinicalJourney() {
         </div>
 
         ${finalReportResult.medicationPre ? `
-        <div class="section-title">سادساً: الدعم والبروتوكول العلاجي الدوائي المقترح (Psychiatric Medication Reference)</div>
-        <div class="card" style="border: 1px solid #fca5a5; background-color: #fffafb; margin-bottom: 20px;">
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 0;">
-            <div><span class="meta-label">الاسم التجاري الموصى بنقاشه:</span> <strong>${finalReportResult.medicationPre.brandNameLocal} (${finalReportResult.medicationPre.brandNameForeign})</strong></div>
-            <div><span class="meta-label">المادة العلمية النشطة:</span> ${finalReportResult.medicationPre.genericName}</div>
-            <div><span class="meta-label">التركيزات السريرية المعتمدة:</span> ${finalReportResult.medicationPre.strengths?.join(" / ")}</div>
-            <div><span class="meta-label">الجرعة الاسترشادية الشائعة:</span> قرص واحد بالمساء / الصباح طبقاً لتعليمات الطبيب المعالج</div>
+        <div class="section-title">سادساً: التوجيه والبروتوكول العلاجي الدوائي التفصيلي الموصى بنقاشه (Pharmacological Directive & Prescription Reference)</div>
+        <div class="card" style="border: 2px solid #0d9488; background-color: #f0fdf4; margin-bottom: 25px; padding: 20px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+          <!-- Top Row Badge & Rx Icon -->
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0d9488; padding-bottom: 12px; margin-bottom: 16px;">
+            <span style="font-size: 16px; font-weight: 900; color: #0d9488; display: flex; align-items: center; gap: 6px;">
+              💊 بطاقة الوصفة والبروتوكول الدوائي التوجيهي
+            </span>
+            <span style="background-color: #0d9488; color: white; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase;">
+              الاعتماد: رقمي إرشادي 🧪
+            </span>
           </div>
-          <div style="margin-top: 10px; font-size: 12px; color: #475569;">
-            <strong class="text-amber-600">المزايا الإكلينيكية المحددة للوعكة:</strong> ${finalReportResult.medicationPre.advantages?.join(" ، ")}
-          </div>
-          <div style="color: #991b1b; font-size: 11px; font-weight: bold; margin-top: 10px; border-top: 1px dashed #fca5a5; padding-top: 6px;">
-            ⚠️ تحذير طبي هام: كبينات استرشادية، يحظر تماماً شراء وصرف هذا العقار الدوائي دون فحص سريري مباشر و تذكرة طبية ممهورة من طبيب نفسي مرخص.
+
+          <!-- Description Grid Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12.5px;">
+            <tbody>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px 0; font-weight: bold; color: #475569; width: 30%;">● الاسم التجاري والمثائل المحلية:</td>
+                <td style="padding: 10px 0; font-weight: 800; color: #0f172a; font-size: 13.5px;">
+                  ${finalReportResult.medicationPre.brandNameLocal} <span style="font-weight: normal; color: #64748b; font-size: 11.5px;">(${finalReportResult.medicationPre.brandNameForeign})</span>
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px 0; font-weight: bold; color: #475569;">● المادة الفعالة (العلمية):</td>
+                <td style="padding: 10px 0; font-weight: 700; color: #0d9488; font-family: monospace;">
+                  ${finalReportResult.medicationPre.genericName}
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px 0; font-weight: bold; color: #475569;">● التصنيف والعائلة السريرية:</td>
+                <td style="padding: 10px 0; color: #334155; font-weight: 600;">
+                  ${finalReportResult.medicationPre.categoryArabic}
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px 0; font-weight: bold; color: #475569;">● التركيزات الطبية المعتمدة:</td>
+                <td style="padding: 10px 0; color: #334155;">
+                  <strong>${finalReportResult.medicationPre.strengths?.join(" / ") || "10 ملغ"}</strong>  — (الجرعة الافتتاحية الموصى بها: قرص واحد بالمساء / الصباح طبقاً لتعليمات الطبيب المعالج).
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px 0; font-weight: bold; color: #475569;">● المدة السريرية المستهدفة للاستقرار:</td>
+                <td style="padding: 10px 0; color: #4338ca; font-weight: 700;">
+                  ${finalReportResult.medicationPre.standardDurationArabic || "تتراوح بين 6 إلى 12 شهراً لإعادة المرونة العصبية للدماغ."}
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 10px 0; font-weight: bold; color: #475569;">● المزايا الإكلينيكية الملاحظة للحالة:</td>
+                <td style="padding: 10px 0; color: #15803d; font-weight: 600; line-height: 1.6;">
+                  ${finalReportResult.medicationPre.advantages?.join(" ، ") || "تحسين القدرة على مواجهة المواقف المقلقة وتقليل التوتر العضلي."}
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; font-weight: bold; color: #475569; vertical-align: top;">● الأعراض والتعليمات الجانبية للأمان:</td>
+                <td style="padding: 10px 0; color: #b45309; line-height: 1.6;">
+                  ${finalReportResult.medicationPre.sideEffects?.join(" ، ") || "قد يحدث بعض الغثيان الخفيف المؤقت في الأيام الأولى للجرعة."}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Disclaimer / Warning Box in Export PDF -->
+          <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; padding: 12px; margin-top: 15px;">
+            <p style="margin: 0; font-size: 11px; line-height: 1.7; color: #be123c; text-align: justify; font-weight: 800;">
+              ⚠️ تحذير دوائي وصيدلاني حاسم بالأمان: هذا جدول مرجعي توجيهي تم وضعه وتنسيقه تلقائياً بموجب استجابتك السلوكية السيكومترية. يحظر حظراً تاماً وقاطعاً التوجه للصيدليات لحيازة وصرف هذا العلاج كيميائياً، أو الشروع في بلعه وتغيير مقاديره دون تذكرة علاجية ممهورة سريرياً وحية من استشاري الطب النفسي المرخص رسمياً ببلدكم.
+            </p>
           </div>
         </div>
         ` : ""}
@@ -3267,16 +3319,74 @@ export function IntegratedClinicalJourney() {
 
                             {/* Drug treatments if any */}
                             {activeReportModalData.data.medicationPre ? (
-                              <div className="p-4 bg-indigo-950/20 border border-indigo-900/60 rounded-xl text-[11px] leading-relaxed">
-                                <strong className="text-indigo-400 font-bold block mb-1">
-                                  البروتوكول العلاجي الدوائي الوقائي المقترح والمطابقة:
+                              <div className="p-5 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl text-[11px] leading-relaxed space-y-4">
+                                <strong className="text-emerald-400 font-black block text-xs border-b border-emerald-900/40 pb-2 mb-1">
+                                  💊 التوجيه الدوائي المفصل والبروتوكول السريري المقترح:
                                 </strong>
-                                <p className="font-semibold text-slate-200">
-                                  {activeReportModalData.data.medicationPre.brandNameLocal} ({activeReportModalData.data.medicationPre.brandNameForeign}) — الجرعة الاسترشادية: بمعدل {activeReportModalData.data.medicationPre.strengths?.[0] || '10'} ملغ يومياً.
-                                </p>
-                                <span className="block text-[9px] text-red-400 mt-2">
-                                  ⚠️ تنبيه عيادي هام: الدليل الدوائي أعلاه هو دليل تعليمي استرشادي مساعد، ويجب الامتناع المطلق عن شرائه أو تناوله دون استشارة الطبيب النفسي المختص المباشر بخصوصية تامة.
-                                </span>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                  <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                                    <span className="text-[9.5px] font-bold text-slate-400 block">● الاسم التجاري والمثائل:</span>
+                                    <strong className="text-slate-100 font-extrabold text-[11.5px] block">
+                                      {activeReportModalData.data.medicationPre.brandNameLocal}
+                                    </strong>
+                                  </div>
+                                  <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                                    <span className="text-[9.5px] font-bold text-slate-400 block">● المثيل الأجنبي العالمي:</span>
+                                    <strong className="text-slate-300 font-extrabold text-[11.5px] block font-mono">
+                                      {activeReportModalData.data.medicationPre.brandNameForeign}
+                                    </strong>
+                                  </div>
+                                  <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                                    <span className="text-[9.5px] font-bold text-slate-400 block">● المادة العلمية الفعالة:</span>
+                                    <strong className="text-emerald-400 font-bold text-[11.5px] block font-mono">
+                                      {activeReportModalData.data.medicationPre.genericName}
+                                    </strong>
+                                  </div>
+                                  <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                                    <span className="text-[9.5px] font-bold text-slate-400 block">● العائلة السريرية الفعالة:</span>
+                                    <span className="text-slate-300 font-semibold block">
+                                      {activeReportModalData.data.medicationPre.categoryArabic}
+                                    </span>
+                                  </div>
+                                  <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                                    <span className="text-[9.5px] font-bold text-slate-400 block">● التركيزات المتاحة:</span>
+                                    <span className="text-slate-300 font-bold block">
+                                      {activeReportModalData.data.medicationPre.strengths?.join(" / ") || "10 ملغ / 20 ملغ"}
+                                    </span>
+                                  </div>
+                                  <div className="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl space-y-1">
+                                    <span className="text-[9.5px] font-bold text-slate-400 block">● مدة الاستقرار المتوقعة:</span>
+                                    <span className="text-indigo-300 font-bold block">
+                                      {activeReportModalData.data.medicationPre.standardDurationArabic || "من 6 أشهر لـ عام كامل"}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2 pt-2 border-t border-slate-900">
+                                  <div className="bg-slate-900/40 p-2.5 border border-slate-900 rounded-xl">
+                                    <span className="text-[9.5px] font-extrabold text-emerald-400 block mb-0.5">💡 المزايا السريرية والفوائد المستهدفة للحالة:</span>
+                                    <p className="text-[10px] text-slate-300 font-medium">
+                                      {activeReportModalData.data.medicationPre.advantages?.join(" ، ") || "تحسين جودة النوم وتقليل تكرار نوبات الهلع العام والتوتر المرضي."}
+                                    </p>
+                                  </div>
+
+                                  <div className="bg-slate-900/40 p-2.5 border border-slate-900 rounded-xl">
+                                    <span className="text-[9.5px] font-extrabold text-amber-400 block mb-0.5">⚠️ الآثار الاحترازية وتعليمات الأمان الدوائية:</span>
+                                    <p className="text-[10px] text-amber-200/90 font-medium">
+                                      {activeReportModalData.data.medicationPre.sideEffects?.join(" ، ") || "قد تصحبها اضطرابات نوم خفيفة أو بعض الغثيان الخفيف المؤقت في أول أسبوع."}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="p-3 bg-red-950/40 border border-red-500/20 rounded-xl">
+                                  <span className="block text-[9.5px] font-extrabold text-red-400">
+                                    ⚠️ تنبيه عيادي ملزم للسلامة:
+                                  </span>
+                                  <p className="text-[9px] text-red-200/80 mt-1 text-justify leading-relaxed">
+                                    إن الدليل والبروتوكول العلاجي الدوائي المبين أعلاه هو دليل تعليمي استرشادي مساعد تم تنسيقه وتوطينه تلقائياً لمطابقة عناء شكواكم. يحظر حظراً باتاً التنازل عن دور الطبيب المعالج والذهاب إلى شرائه مباشرة، حيث يتطلب هذا العلاج تذكرة طبية حية وممهورة سريرياً من قبل استشاري الطب النفسي المرخص بالبلد.
+                                  </p>
+                                </div>
                               </div>
                             ) : (
                               <div className="p-4 bg-teal-950/25 border border-teal-900/40 rounded-xl text-[10.5px] leading-relaxed text-slate-350 font-semibold">
