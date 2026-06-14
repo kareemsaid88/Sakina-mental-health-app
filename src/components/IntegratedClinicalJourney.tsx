@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { CLINICAL_TESTS } from "../data/clinicalTests";
+import { MedicationReminder } from "../types";
 import { PSYCHIATRIC_MEDICATIONS, getReportSuggestedMedication, getCustomizedMedicationsList } from "../data/medicationsData";
 import { MENTAL_HEALTH_BOOKS, EDUCATIONAL_VIDEOS } from "../data/libraryData";
 import { 
@@ -927,8 +928,46 @@ export function IntegratedClinicalJourney() {
     const loggedInUser = localStorage.getItem("sakeenah_logged_in_user") || authInput;
     if (loggedInUser) {
       const emailKey = loggedInUser.trim().toLowerCase();
-      const customizedMeds = getCustomizedMedicationsList(test.id);
-      localStorage.setItem(`sakeenah_meds_${emailKey}`, JSON.stringify(customizedMeds));
+      
+      // Load current scheduled medications
+      let currentMeds: MedicationReminder[] = [];
+      try {
+        const rawSaved = localStorage.getItem(`sakeenah_meds_${emailKey}`);
+        if (rawSaved) {
+          currentMeds = JSON.parse(rawSaved);
+        }
+      } catch (e) {
+        currentMeds = [];
+      }
+
+      // Check if primary matched medication exists and check if already in the scheduler list
+      const cleanMatchedName = matchedMed ? matchedMed.brandNameLocal.split("(")[0].split("/")[0].trim() : "";
+      const exists = currentMeds.some(m => 
+        m.nameArabic.includes(cleanMatchedName) || 
+        (matchedMed && m.nameEnglish.includes(matchedMed.brandNameForeign))
+      );
+
+      if (!exists && matchedMed) {
+        const primaryReminder: MedicationReminder = {
+          id: "med_automatic_" + Date.now(),
+          nameArabic: `${matchedMed.brandNameLocal} (${matchedMed.categoryArabic})`,
+          nameEnglish: `${matchedMed.brandNameForeign} (${matchedMed.genericName})`,
+          dosage: matchedMed.strengths?.[0] || "10 ملغ",
+          frequency: "يومياً أو وفق توجيهات طبيبك المختص",
+          timesOfDay: ["21:00"],
+          isActive: true,
+          takenToday: []
+        };
+        currentMeds = [primaryReminder, ...currentMeds];
+      }
+
+      // If currentMeds remains empty, initialize with customized list matching the scale
+      if (currentMeds.length === 0) {
+        currentMeds = getCustomizedMedicationsList(test.id);
+      }
+
+      localStorage.setItem(`sakeenah_meds_${emailKey}`, JSON.stringify(currentMeds));
+      window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
     }
 
     // Select books & videos matching condition
@@ -3174,6 +3213,89 @@ export function IntegratedClinicalJourney() {
                   </div>
                 </div>
               </div>
+
+              {/* 💊 التوجيه والبروتوكول الدوائي التفصيلي الموصى بنقاشه بالعيادة - المرحلة الخامسة */}
+              {finalReportResult.medicationPre ? (
+                <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 md:p-8 space-y-6 text-right relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl"></div>
+                  
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-4 z-10 relative">
+                    <span className="text-[10px] text-emerald-450 text-emerald-400 font-extrabold bg-emerald-950 border border-emerald-900/60 px-3 py-1 rounded-full animate-pulse">
+                      البروتوكول الدوائي الموصى به 💊
+                    </span>
+                    <h5 className="font-extrabold text-slate-100 text-sm flex items-center gap-2">
+                      <Pill className="w-5 h-5 text-emerald-400" />
+                      التوجيه والبروتوكول العلاجي الدوائي التفصيلي الموصى بنقاشه مع المعالج
+                    </h5>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-sans z-10 relative">
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-850 space-y-1">
+                      <strong className="text-[10px] text-slate-400 block">● اسم الدواء التجاري والمثائل:</strong>
+                      <span className="font-extrabold text-slate-100 block text-[11.5px]">{finalReportResult.medicationPre.brandNameLocal}</span>
+                    </div>
+
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-850 space-y-1">
+                      <strong className="text-[10px] text-slate-400 block">● المثيل الأجنبي العالمي:</strong>
+                      <span className="font-bold text-slate-300 block font-mono text-[11.5px]">{finalReportResult.medicationPre.brandNameForeign}</span>
+                    </div>
+
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-850 space-y-1">
+                      <strong className="text-[10px] text-slate-400 block">● المادة العلمية (الفعالة):</strong>
+                      <span className="font-bold text-emerald-400 block font-mono text-[11.5px]">{finalReportResult.medicationPre.genericName}</span>
+                    </div>
+
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-850 space-y-1">
+                      <strong className="text-[10px] text-slate-400 block">● التصنيف والعائلة السريرية:</strong>
+                      <span className="font-semibold text-slate-200 block">{finalReportResult.medicationPre.categoryArabic}</span>
+                    </div>
+
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-850 space-y-1">
+                      <strong className="text-[10px] text-slate-400 block">● التركيزات المعتمدة والجرعة:</strong>
+                      <span className="font-bold text-teal-300 block">
+                        {finalReportResult.medicationPre.strengths?.join(" / ") || "10 ملغ / 20 ملغ"}
+                      </span>
+                    </div>
+
+                    <div className="bg-slate-950 p-3.5 rounded-2xl border border-slate-850 space-y-1">
+                      <strong className="text-[10px] text-slate-400 block">● مدة العلاج السريرية للاستقرار:</strong>
+                      <span className="font-extrabold text-indigo-300 block">
+                        {finalReportResult.medicationPre.standardDurationArabic}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans z-10 relative pt-2">
+                    <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-2xl space-y-1">
+                      <span className="text-[10px] font-extrabold text-emerald-400 block">💡 المزايا والفوائد الإكلينيكية الملاحظة للحالة:</span>
+                      <p className="text-[10.5px] text-slate-300 leading-relaxed font-semibold">
+                        {finalReportResult.medicationPre.advantages?.join(" ، ")}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-2xl space-y-1">
+                      <span className="text-[10px] font-extrabold text-amber-400 block">⚠️ الأعراض والتعليمات الجانبية للأمان:</span>
+                      <p className="text-[10.5px] text-amber-200/90 leading-relaxed font-semibold">
+                        {finalReportResult.medicationPre.sideEffects?.join(" ، ")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-red-950/30 border border-red-500/20 rounded-2xl z-10 relative">
+                    <p className="text-[9.5px] text-red-400 font-extrabold">⚠️ تحذير دوائي وصيدلاني حاسم بالأمان:</p>
+                    <p className="text-[9px] text-red-200/80 mt-1 leading-relaxed text-justify">
+                      هذا جدول مرجعي توجيهي تم وضعه وتنسيقه تلقائياً بموجب استجابتك السلوكية السيكومترية. يحظر حظراً تاماً وقاطعاً التوجه للصيدليات لحيازة وصرف هذا العلاج كيميائياً، أو الشروع في بلعه وتغيير مقاديره دون تذكرة علاجية ممهورة سريرياً وحية من استشاري الطب النفسي المرخص رسمياً ببلدكم لحمايتكم من متلازمات الانقطاع المفاجئ أو الأخطار الجسدية.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gradient-to-r from-teal-950/20 to-emerald-950/20 border border-teal-500/10 rounded-3xl p-6 text-right space-y-2">
+                  <h5 className="font-extrabold text-teal-400 text-xs">🩺 المقررات والبروتوكول السريري الحالي:</h5>
+                  <p className="text-slate-300 leading-relaxed">
+                    لم نستدل على مؤشرات تستوجب وصف عقاقير الطوارئ أو الدعم الدوائي النفسي النشط لحالتك الراهنة. نوصيك بالتركيز الكامل على التمارين السلوكية المنزلية وجدول دعم السكينة السلوكي CBT المجدول بأمر الأخصائي.
+                  </p>
+                </div>
+              )}
 
               {/* 📊 COMPARISON CARD: QUALITATIVE VS QUANTITATIVE ALIGNMENT */}
               <div className="bg-slate-900/30 border border-teal-900/30 p-5 rounded-3xl space-y-4 text-right relative overflow-hidden">
