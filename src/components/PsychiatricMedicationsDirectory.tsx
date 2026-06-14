@@ -293,7 +293,7 @@ export function PsychiatricMedicationsDirectory() {
                         
                         // Dispatch custom event to let other tabs (DrugAlertScheduler / Clinical Journey) sync!
                         window.dispatchEvent(new CustomEvent("sakeenah_patient_updated"));
-                        alert(`تمت إضافة ووصف علاج (${med.brandNameLocal}) لجدول جرعاتك المجدولة بنجاح! يمكنكم تتبعه تزامناً في التبويب المخصص الأدوية المشخصة. 🚀`);
+                        alert(`تمت إضافة ووصف علاج (${med.brandNameLocal}) لجدول جرعاتك المجدولة بنجاح! يمكنكم تتبعه تزامناً في التبويب المخصص خطة العلاج الدوائي. 🚀`);
                       }}
                       className="w-full py-2.5 px-4 bg-teal-600 hover:bg-teal-500 text-slate-950 font-black rounded-2xl text-[11px] transition flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-teal-950/20"
                     >

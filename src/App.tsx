@@ -58,7 +58,7 @@ export default function App() {
   const navigationTabs = [
     { id: "journey", label: "الرحلة السريرية المتكاملة", icon: HeartHandshake, description: "التقييم، الشكوى، التشخيص والمتابعة" },
     { id: "cbt", label: "خطة الدعم الذاتي (CBT)", icon: Smile, description: "الأفكار، سلم التعرض، والتنفس" },
-    { id: "drugs", label: "الأدوية المشخصة", icon: Pill, description: "مواعيد الجرعات والالتزام اليومي" },
+    { id: "drugs", label: "خطة العلاج الدوائي", icon: Pill, description: "مواعيد الجرعات والالتزام اليومي" },
     { id: "medications", label: "الموسوعة الدوائية النفسية", icon: Pill, description: "تفاصيل الأدوية والتركيزات والمزايا والعيوب" },
     { id: "personality-tests", label: "الاختبارات وأنماط الشخصية", icon: FileHeart, description: "اختبارات MBTI، الإنياغرام، والمقاييس الطبية" },
     { id: "library", label: "المكتبة المعرفية والتوعية", icon: BookOpen, description: "كتب عيادية وفيديوهات توعوية" }

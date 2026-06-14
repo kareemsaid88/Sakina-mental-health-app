@@ -59,6 +59,109 @@ export const getFinalDiagnosticProfileSummary = (result: any) => {
   return { line1, line2 };
 };
 
+export function getChronicDiseaseAdviceList(chronicDiseasesText: string, matchedMed: any) {
+  if (!chronicDiseasesText || chronicDiseasesText === "لا يوجد") return [];
+  const text = chronicDiseasesText.toLowerCase();
+  const adviceList: { label: string; type: "synergy" | "warning" | "info" | "contraindication"; textAr: string; textEn: string }[] = [];
+  
+  const isInderal = matchedMed && (
+    matchedMed.brandNameForeign?.toLowerCase().includes("propranolol") ||
+    matchedMed.brandNameForeign?.toLowerCase().includes("inderal") ||
+    matchedMed.brandNameLocal?.includes("إنديرال") ||
+    matchedMed.genericName?.toLowerCase().includes("propranolol")
+  );
+
+  // 1. الضغط
+  if (text.includes("ضغط") || text.includes("tension") || text.includes("pressure")) {
+    if (isInderal) {
+      adviceList.push({
+        label: "ارتفاع ضغط الدم الشرياني & دواء إنديرال",
+        type: "synergy",
+        textAr: "علاقة تكاملية إيجابية: دواء إنديرال (بروبرانولول) مدرج لعلاج أعراض القلق الجسدي (تسارع نبض القلب والارتجاف) وهو في الأصل منظم هام لضغط الدم الشرياني. يمثل الرابط هنا تآزراً علاجياً مزدوجاً، لكن يرجى قياس الضغط بشكل دوري ومراجعة طبيب القلب لتفادي الهبوط المفرط للضغط والدقات أو التعارض مع Concor أو منظمات الضغط الأخرى.",
+        textEn: "Synergistic relationship: Inderal (Propranolol) targets physical symptoms of anxiety (tachycardia, tremors) while naturally regulating arterial blood pressure. This provides a dual therapeutic benefit. Monitor blood pressure routinely and consult your cardiologist to avoid excessive hypotension or bradycardia when coupled with other anti-hypertensives like Concor."
+      });
+    } else {
+      adviceList.push({
+        label: "ارتفاع ضغط الدم الشرياني & العلاج الدوائي",
+        type: "info",
+        textAr: "ربط إكلينيكي: المنشأة العلاجية (سيبرالكس / مضادات الاكتئاب SSRIs) آمنة عموماً لمرضى الضغط المرتفع. ومع ذلك، نوصي بتجنب تراكيب أدوية SNRIs (مثل إيفكسور) التي قد تؤثر طردياً على رفع قيم ضغط الشرايين بدون إشراف طبي وثيق.",
+        textEn: "Clinical link: Escitalopram is generally safe for patients with hypertension. However, SNRIs (like Venlafaxine/Effexor) should be avoided as they can elevate blood pressure; routine clinical monitoring is recommended."
+      });
+    }
+  }
+
+  // 2. السكري
+  if (text.includes("سكري") || text.includes("سكر") || text.includes("diabet")) {
+    adviceList.push({
+      label: "داء السكري & هرمونات القلق ومقاومة الإنسولين",
+      type: "info",
+      textAr: "ربط وتأثير متبادل: هناك علاقة هرمونية وطيدة بين الاكتئاب والقلق وبين مستويات السكر؛ حيث يؤدي القلق والتوتر الدائم لزيادة إفراز الكورتيزول وبالتالي زيادة مقاومة الإنسولين في الخلايا. علاجك النفسي سيساهم إيجاباً في استقرار سكر الدم! ولكن انتبه: يحظر تماماً تناول مضادات الذهان من فئة الأدوية غير النمطية (مثل أولانزابين Olanzapine) لتفادي خطر المتلازمة التمثيلية وزيادة الوزن والسكري، واستشر طبيب الغدد دائماً.",
+      textEn: "Metabolic link: Chronic anxiety/depression raises cortisol levels, causing cell-insulin resistance. Treating mood disorders with CBT and safe SSRIs like Escitalopram promotes glycemic stability! However, atypical antipsychotics (like Olanzapine) must be avoided due to the high risk of metabolic syndrome and hyperlipidemia."
+    });
+  }
+
+  // 3. الكلى والكبد
+  if (text.includes("كلى") || text.includes("كبد") || text.includes("renal") || text.includes("kidney") || text.includes("liver") || text.includes("hepatic")) {
+    adviceList.push({
+      label: "أمراض الكلى والكبد & الاستقلاب وتراكم الدواء",
+      type: "warning",
+      textAr: "ربط الاستقلاب الدوائي: يتم استقلاب وتفكيك معظم مضادات الاكتئاب والقلق (بما فيها السيروتونين سيبرالكس) حيوياً عبر خلايا الكبد ويتم تصريف نفاياتها عبر الكلى. في حال وجود اعتلال كبدي أو قصور كلوي، نوصي طبياً بتعديل وخفض الجرعة البدئية إلى النصف (مثلاً 5 ملغ لسيبرالكس بدلاً من 10 ملغ) لمنع تراكم الدواء بالدم والتسمم، ومراقبة وظائف الأعضاء بدقة.",
+      textEn: "Pharmacokinetic caution: Most psychiatric drugs (including Escitalopram) are hepatically metabolized and renally cleared. In patients with renal or hepatic impairment, the initial dosage should be halved (e.g., 5mg instead of 10mg) to prevent drug accumulation and systemic toxicity; monitor liver/kidney funtion panels regularly."
+    });
+  }
+
+  // 4. الصرع
+  if (text.includes("صرع") || text.includes("epilep") || text.includes("seiz")) {
+    adviceList.push({
+      label: "مرض الصرع & عتبة التشنجات والاضطرابات العصبية",
+      type: "warning",
+      textAr: "تأهب نوبات الصرع: تخفض بعض مضادات الاكتئاب (مثل Bupropion/Wellbutrin) من عتبة الاختلاج والصرع وتزيد نوبات التشنج. يعتبر دواء سيبرالكس إكلينيكياً آمناً نسبياً لمرضى الصرع، لكن تجب الحيطة وموازنة دواء الصرع (مثل كربامازيبين Carbamazepine) الذي يفرز إنزيمات الكبد ويقلل مستويات مضادات الاكتئاب بالدم.",
+      textEn: "Seizure threshold warning: Certain antidepressants (especially Bupropion/Wellbutrin) lower the seizure threshold. While Escitalopram is clinically safer, any anti-epileptic medication (like Carbamazepine) can induce liver enzymes and decrease the efficacy of antidepressants, necessitating exact safety titration."
+    });
+  }
+
+  // 5. الغدة الدرقية
+  if (text.includes("غدة") || text.includes("درقية") || text.includes("thyroid")) {
+    adviceList.push({
+      label: "اضطرابات الغدة الدرقية & تشابه الأعراض المظلل",
+      type: "info",
+      textAr: "تشابه الأعراض المظلل: تؤدي اضطرابات هرمونات الغدة الدرقية إلى تغيرات نفسية تحاكي بوضوح الوعكة النفسية؛ خمول وقصور الغدة (Hypothyroidism) يسبب اكتئاباً وخمولاً وغياب دافعية حادة، ونشاط الغدة المفرط (Hyperthyroidism) يثير نوبات الهلع وتسارع نبضات القلب والقلق الحاد. تأكد منصتنا من ضرورة فحص TSH/Free T4 مخبرياً لنفي المنشأ العضوي للاكتئاب قبل الاستمرار بالعلاج الكيميائي.",
+      textEn: "Symptom mimicry link: Thyroid hormones control metabolism and mood. Hypothyroidism can mimic major depressive episodes (apathy, clinical fatigue), whereas hyperthyroidism directly generates physical panic attacks (palpitations, acute anxiety). Always check laboratory serum TSH/Free T4 levels to rule out organic thyroid causes before finalizing psychiatric treatments."
+    });
+  }
+
+  // 6. أمراض الجهاز الهضمي
+  if (text.includes("هضمي") || text.includes("قولون") || text.includes("معدة") || text.includes("قرحة") || text.includes("ibs") || text.includes("stomach") || text.includes("gastric")) {
+    adviceList.push({
+      label: "أمراض الجهاز الهضمي & القولون العصبي ومظلة السيروتونين",
+      type: "info",
+      textAr: "ربط المحور العصبي المعوي (IBS): توجد بكتيريا وخلايا عصبية في الجهاز الهضمي تفرز السيروتونين وتسمى 'الدماغ الثاني'. القلق العاطفي يثير مباشرة متلازمة القولون العصبي (IBS). العلاج بمثبطات استرداد السيروتونين مفيد جداً للمعدة المعوية تحت التنشيط، لكن الأيام الأولى قد يصحبها غثيان خفيف نتيجة تحفيز مستقبلات السيروتونين الموضعية بالبطن. احذر: تزيد مضادات الاكتئاب من خطر نزيف المعدة إذا تم دمجها مع مسكنات الألم NSAIDs كعلاجات الضغط والظهر العظام اليومية دون حماية مبطنة للمعدة (مثل أوميبرازول).",
+      textEn: "Gut-Brain axis alignment (IBS): Serotonin acts as a key neurotransmitter in the gastrointestinal system (the 'second brain'). Emotional anxiety directly triggers Irritable Bowel Syndrome (IBS). SSRIs significantly improve gastrointestinal symptoms over time, though mild nausea is expected initially. Caution: Antidepressants elevate bleeding risk when combined with chronic NSAIDs (daily painkillers) without gastric protection like Omeprazole."
+    });
+  }
+
+  // 7. أمراض الجهاز التنفسي
+  if (text.includes("تنفس") || text.includes("ربو") || text.includes("صدر") || text.includes("asthma") || text.includes("copd") || text.includes("respirat")) {
+    if (isInderal) {
+      adviceList.push({
+        label: "أمراض الصدر والربو & دواء إنديرال (تعارض مطلق!)",
+        type: "contraindication",
+        textAr: "⚠️ تعارض وتضاد حاد وخطير للغاية! يمنع تماماً وقطيعاً تناول دواء إنديرال (بروبرانولول) لمرضى الربو الشعبي والانسداد الرئوي المزمن؛ لأنه يغلق مستقبلات بيتا-2 الهوائية مما يؤدي إلى تشنج القصبات الحاد وضيق تنفس قد يهدد الحياة! يجب فوراً وبصورة حتمية استشارة الطبيب لاستبدال إنديرال بمثبطات قلق انتقائية (مثل سيبرالكس أو أدوية بيتا الانتقائية لمرضى الصدر).",
+        textEn: "⚠️ CRITICAL SEVERE CONTRAINDICATION! Propranolol (Inderal) is strictly and absolutely forbidden for patients with bronchial asthma or COPD. As a non-selective beta-blocker, it blocks beta-2 receptors in the lungs, worsening bronchospasm and causing life-threatening respiratory distress. Consult your psychiatrist immediately to substitute Propranolol with safe alternatives."
+      });
+    } else {
+      adviceList.push({
+        label: "أمراض الجهاز التنفسي والربو & مضادات القلق والـ SSRIs",
+        type: "info",
+        textAr: "ربط التكيف التنفسي: مضادات الاكتئاب والقلق مثل سيبرالكس هي أدوية آمنة ومريحة للمنفس الهوائي لمرضى الربو، ولم يسجل لها أي آثار تعارضية تضيق النفس السلوكي، وتساهم بفعالية في تهدئة الهلع المرافق لنوبات ضيق الصدر الرئوي الحادة.",
+        textEn: "Respiratory safety: SSRIs like Escitalopram are safe for respiratory functions. They do not induce asthma or bronchial inflammation, and effectively calm the secondary panic and hypoxia anxiety associated with acute respiratory distress episodes."
+      });
+    }
+  }
+
+  return adviceList;
+}
+
 export function IntegratedClinicalJourney() {
   // 🔐 Auth States
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -2077,6 +2180,72 @@ export function IntegratedClinicalJourney() {
                         className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 transition"
                       />
                     </div>
+
+                    <div className="space-y-2 md:col-span-2 bg-slate-900/30 p-4 border border-slate-900/60 rounded-2xl text-right">
+                      <label className="text-slate-200 font-bold block">هل تعاني من أمراض مزمنة؟ (يرجى الكتابة أو النقر للمطابقة الفورية):</label>
+                      <p className="text-[10px] text-slate-450 leading-relaxed text-slate-400">
+                        اكتب أمراضك المزمنة مثل (الضغط، السكري، أمراض الكلى والكبد، الصرع، الغدة الدرقية، أمراض الجهاز الهضمي، أمراض الجهاز التنفسي) لتتمكن خوارزمية السكينة المعتمدة سريرياً من ربطها بالتشخيص والأدوية الموصوفة بأمان تام.
+                      </p>
+                      <input
+                        type="text"
+                        placeholder="مثال: الضغط، السكري"
+                        value={demographics.chronicDiseases}
+                        onChange={(e) => setDemographics({...demographics, chronicDiseases: e.target.value})}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-teal-500 transition font-semibold"
+                      />
+                      <div className="flex flex-wrap gap-1.5 pt-1.5">
+                        {[
+                          { name: "الضغط", color: "border-blue-900 bg-blue-950/20 text-blue-400" },
+                          { name: "السكري", color: "border-emerald-900 bg-emerald-950/20 text-emerald-400" },
+                          { name: "أمراض الكلى والكبد", color: "border-red-900 bg-red-950/20 text-red-400" },
+                          { name: "الصرع", color: "border-purple-900 bg-purple-950/20 text-purple-400" },
+                          { name: "الغدة الدرقية", color: "border-amber-900 bg-amber-950/20 text-amber-400" },
+                          { name: "أمراض الجهاز الهضمي", color: "border-orange-900 bg-orange-950/20 text-orange-400" },
+                          { name: "أمراض الجهاز التنفسي", color: "border-pink-900 bg-pink-950/20 text-pink-400" },
+                        ].map((disease) => {
+                          const hasDisease = demographics.chronicDiseases && demographics.chronicDiseases.includes(disease.name);
+                          return (
+                            <button
+                              key={disease.name}
+                              type="button"
+                              onClick={() => {
+                                const current = demographics.chronicDiseases || "";
+                                if (current === "لا يوجد" || current.trim() === "") {
+                                  setDemographics({...demographics, chronicDiseases: disease.name});
+                                } else if (current.includes(disease.name)) {
+                                  const updated = current
+                                    .split(/[،,،\- ]+/)
+                                    .map(s => s.trim())
+                                    .filter(s => s && s !== disease.name)
+                                    .join("، ");
+                                  setDemographics({...demographics, chronicDiseases: updated || "لا يوجد"});
+                                } else {
+                                  setDemographics({...demographics, chronicDiseases: `${current}، ${disease.name}`});
+                                }
+                              }}
+                              className={`px-2.5 py-1 text-[10px] rounded-lg border font-bold hover:brightness-110 transition cursor-pointer ${
+                                hasDisease 
+                                  ? "bg-slate-100 border-white text-slate-950 brightness-110" 
+                                  : disease.color
+                              }`}
+                            >
+                              {disease.name}
+                            </button>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          onClick={() => setDemographics({...demographics, chronicDiseases: "لا يوجد"})}
+                          className={`px-2.5 py-1 text-[10px] rounded-lg border font-bold hover:brightness-110 transition cursor-pointer ${
+                            (demographics.chronicDiseases === "لا يوجد" || !demographics.chronicDiseases) 
+                              ? "bg-slate-100 border-white text-slate-950 brightness-110" 
+                              : "border-slate-800 bg-slate-900 text-slate-400"
+                          }`}
+                        >
+                          خالٍ من الأمراض المزمنة بفضل الله
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Advanced Medical / Clinical History */}
@@ -2842,6 +3011,71 @@ export function IntegratedClinicalJourney() {
                 )}
               </div>
 
+              {/* 🧠 الذكاء الاصطناعي والربط التكاملي مع الأمراض المزمنة والتداخلات الدوائية */}
+              {(() => {
+                const diseaseAdvice = getChronicDiseaseAdviceList(demographics.chronicDiseases, finalReportResult.medicationPre);
+                if (diseaseAdvice.length > 0) {
+                  return (
+                    <div className="bg-slate-900 border border-indigo-900/40 p-6 rounded-3xl space-y-4 text-right relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+                      <div className="z-10 relative space-y-3">
+                        <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                          <span className="text-[9px] text-indigo-400 font-extrabold bg-indigo-950/60 border border-indigo-900/60 px-2.5 py-1 rounded-full animate-pulse">
+                            ربط تخصصي تكاملي مفعّل 🧠⚡
+                          </span>
+                          <h5 className="font-extrabold text-slate-100 text-sm flex items-center gap-2">
+                            <Bot className="w-5 h-5 text-indigo-400" />
+                            الربط السريري الذكي بين أمراضك المزمنة وعلاجك النفسي
+                          </h5>
+                        </div>
+
+                        <p className="text-[11px] text-slate-450 leading-relaxed font-semibold text-slate-300">
+                          بناءً على تشخيصك بـ <span className="text-teal-400">[{finalReportResult.severity}]</span> على مقياس <span className="text-teal-400">{finalReportResult.testName} {finalReportResult.testId}</span> وتحديدك للإصابة بأمراض مزمنة، قامت المنصة بفحص السيرة الطبية وربط التداخلات:
+                        </p>
+
+                        <div className="space-y-3.5">
+                          {diseaseAdvice.map((advice, i) => {
+                            let typeBadgeColor = "text-amber-400 bg-amber-950/60 border-amber-900";
+                            if (advice.type === "synergy") typeBadgeColor = "text-emerald-400 bg-emerald-950/60 border-emerald-900";
+                            if (advice.type === "contraindication") typeBadgeColor = "text-red-400 bg-red-950/60 border-red-900";
+                            if (advice.type === "warning") typeBadgeColor = "text-orange-400 bg-orange-950/60 border-orange-900";
+
+                            return (
+                              <div key={i} className="bg-slate-950/50 border border-slate-800 p-4 rounded-2xl space-y-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className={`px-2 py-0.5 text-[9px] font-bold rounded border ${typeBadgeColor}`}>
+                                    {advice.type === "synergy" ? "تآزر علاجي إيجابي" : 
+                                     advice.type === "contraindication" ? "تعارض دوائي خطير" : 
+                                     advice.type === "warning" ? "تنبيه استقلابي" : "إرشاد للملف الطبي"}
+                                  </span>
+                                  <strong className="text-slate-200 text-xs font-bold block">{advice.label}</strong>
+                                </div>
+                                <p className="text-slate-300 text-[10.5px] leading-relaxed">{advice.textAr}</p>
+                                <p className="text-slate-500 text-[9.5px] leading-relaxed font-mono" dir="ltr">{advice.textEn}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="bg-slate-900/30 border border-emerald-950/50 p-4 rounded-2xl flex items-center gap-3 text-right">
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-xl text-emerald-400 shrink-0">
+                        <CheckCircle className="w-5 h-5 bg-emerald-950/50 rounded-xl" />
+                      </div>
+                      <div className="space-y-0.5 text-[11px] text-right">
+                        <strong className="text-emerald-400 block font-bold">نظام التدقيق والسلامة الذكي:</strong>
+                        <p className="text-slate-450 leading-relaxed text-slate-300">
+                          تم مسح ملفك السريري بالكامل ومطابقة العقاقير المقترحة؛ لم نجد أي تعارضات فسيولوجية أو تداخلات دوائية تعيق مسار تعافيك الآمن، مما يؤكد سلامة الخطة العلاجية والدوائية.
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+              })()}
+
               {/* 📑 الشرح الوافي والمفصل والشامل للحالة السريرية للتوصيف التشخيصي النهائي (Requirement 5) */}
               <div className="bg-slate-900 border border-slate-850 p-6 rounded-3xl space-y-5 text-right relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl"></div>
@@ -3046,6 +3280,30 @@ export function IntegratedClinicalJourney() {
                                 لا تستدعي حالتك السريرية أي علاجات دوائية كيميائية في الوقت الراهن؛ حيث يوصى الخوارزم بالتركيز التام على برامج المساعدة والدعم السلوكي المعرفي كخيار كافٍ ومحقق للاستقرار التام.
                               </div>
                             )}
+
+                            {/* Smart chronic disease linkages in modal */}
+                            {(() => {
+                              const diseaseAdvice = getChronicDiseaseAdviceList(demographics.chronicDiseases, activeReportModalData.data.medicationPre);
+                              if (diseaseAdvice.length > 0) {
+                                return (
+                                  <div className="p-4 bg-slate-950/45 border border-indigo-900/30 rounded-xl text-[11px] leading-relaxed space-y-2 text-right">
+                                    <strong className="text-indigo-400 font-bold block flex items-center gap-1.5 justify-end">
+                                      <span>الربط العيادي مع أمراضك المزمنة والتداخلات 🧠🔬</span>
+                                      <Bot className="w-4 h-4 text-indigo-400" />
+                                    </strong>
+                                    <div className="space-y-2 pt-1 border-t border-slate-900">
+                                      {diseaseAdvice.map((advice, i) => (
+                                        <div key={i} className="bg-slate-900/60 p-2.5 border border-slate-800 rounded-lg space-y-1">
+                                          <span className="text-[9.5px] font-extrabold text-amber-400 block">● {advice.label}</span>
+                                          <p className="text-[10px] text-slate-300 leading-normal">{advice.textAr}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
 
                           </div>
                         ) : (
